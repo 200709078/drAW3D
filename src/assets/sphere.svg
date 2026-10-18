@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  viewBox="0 0 64 64"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="Küre"
+>
+  <defs>
+    <radialGradient id="sphereFill" cx="30%" cy="24%" r="72%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="18%" stop-color="#dbeafe" />
+      <stop offset="52%" stop-color="#60a5fa" />
+      <stop offset="82%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </radialGradient>
+    <radialGradient id="sphereHighlight" cx="35%" cy="30%" r="35%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="sphereBluePointBody" cx="32%" cy="26%" r="68%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="16%" stop-color="#9dccff" />
+      <stop offset="42%" stop-color="#1f7aff" />
+      <stop offset="72%" stop-color="#0066ff" />
+      <stop offset="100%" stop-color="#003f9e" />
+    </radialGradient>
+    <radialGradient id="sphereCenterPointBody" cx="32%" cy="26%" r="68%">
+      <stop offset="0%" stop-color="#cbd5e1" />
+      <stop offset="45%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </radialGradient>
+    <filter id="sphereShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="1.5" dy="2" stdDeviation="1.6" flood-color="#000000" flood-opacity="0.28" />
+    </filter>
+  </defs>
+
+  <g filter="url(#sphereShadow)">
+    <circle cx="32" cy="32" r="23" fill="url(#sphereFill)" stroke="#1e40af" stroke-width="1.4" />
+    <line x1="32" y1="32" x2="45.5" y2="19" stroke="#111827" stroke-width="1.35" stroke-linecap="round" stroke-dasharray="3 2.3" opacity="0.78" />
+    <ellipse cx="23.5" cy="21.5" rx="7.5" ry="5.4" fill="url(#sphereHighlight)" transform="rotate(-22 23.5 21.5)" />
+    <circle cx="32" cy="32" r="3.2" fill="url(#sphereCenterPointBody)" stroke="#1f2937" stroke-width="0.85" />
+    <circle cx="45.5" cy="19" r="3.35" fill="url(#sphereBluePointBody)" stroke="#00358f" stroke-width="0.85" />
+  </g>
+</svg>

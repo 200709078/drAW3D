@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  viewBox="0 0 64 64"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="Açı"
+>
+  <defs>
+    <radialGradient id="anglePointBody" cx="32%" cy="26%" r="68%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="16%" stop-color="#9dccff" />
+      <stop offset="42%" stop-color="#1f7aff" />
+      <stop offset="72%" stop-color="#0066ff" />
+      <stop offset="100%" stop-color="#003f9e" />
+    </radialGradient>
+    <radialGradient id="anglePointLight" cx="35%" cy="30%" r="32%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+    <filter id="anglePointShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="1" dy="1.4" stdDeviation="1.1" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <line x1="18" y1="46" x2="53.2" y2="10.8" stroke="#111827" stroke-width="3.2" stroke-linecap="round" />
+  <polygon points="57.2,6.8 49.6,9.2 54.8,14.4" fill="#111827" />
+  <line x1="18" y1="46" x2="52.4" y2="46" stroke="#111827" stroke-width="3.2" stroke-linecap="round" />
+  <polygon points="58,46 50.4,42.8 50.4,49.2" fill="#111827" />
+  <path d="M 39 46 A 21 21 0 0 0 32.85 31.15" fill="none" stroke="#e11d48" stroke-width="4" stroke-linecap="round" />
+
+  <g filter="url(#anglePointShadow)">
+    <circle cx="18" cy="46" r="4.4" fill="url(#anglePointBody)" />
+    <circle cx="18" cy="46" r="4" fill="none" stroke="#004ebf" stroke-width="0.65" opacity="0.55" />
+    <ellipse cx="15.8" cy="43.5" rx="2.5" ry="1.9" fill="url(#anglePointLight)" transform="rotate(-22 15.8 43.5)" />
+  </g>
+</svg>

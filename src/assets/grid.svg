@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  viewBox="0 0 64 64"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="Izgara"
+>
+  <g transform="translate(32 33) rotate(-18) skewX(-18) scale(1 .58) translate(-32 -32)">
+    <rect x="9" y="13" width="46" height="38" rx="2" fill="#f8fafc" stroke="#64748b" stroke-width="1.6" />
+    <g fill="none" stroke="#64748b" stroke-width="1.45" stroke-linecap="round" stroke-dasharray="3 3.2">
+      <path d="M 9 22.5 H 55" />
+      <path d="M 9 32 H 55" />
+      <path d="M 9 41.5 H 55" />
+      <path d="M 20.5 13 V 51" />
+      <path d="M 32 13 V 51" />
+      <path d="M 43.5 13 V 51" />
+    </g>
+  </g>
+</svg>

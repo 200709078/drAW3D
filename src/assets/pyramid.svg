@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  viewBox="0 0 64 64"
+  width="100%"
+  height="100%"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="Piramit"
+>
+  <defs>
+    <linearGradient id="pyramidFaceLeft" x1="10%" y1="10%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#7773a6" stop-opacity="0.78" />
+      <stop offset="100%" stop-color="#55527f" stop-opacity="0.78" />
+    </linearGradient>
+    <linearGradient id="pyramidFaceRight" x1="20%" y1="10%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#696593" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#48456e" stop-opacity="0.8" />
+    </linearGradient>
+    <linearGradient id="pyramidFaceBase" x1="10%" y1="20%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#5f5b86" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#3f3c62" stop-opacity="0.65" />
+    </linearGradient>
+    <linearGradient id="pyramidFaceBack" x1="12%" y1="8%" x2="88%" y2="92%">
+      <stop offset="0%" stop-color="#6c688f" stop-opacity="0.72" />
+      <stop offset="100%" stop-color="#464365" stop-opacity="0.72" />
+    </linearGradient>
+    <radialGradient id="pyramidBluePoint" cx="32%" cy="26%" r="68%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="16%" stop-color="#9dccff" />
+      <stop offset="42%" stop-color="#1f7aff" />
+      <stop offset="72%" stop-color="#0066ff" />
+      <stop offset="100%" stop-color="#003f9e" />
+    </radialGradient>
+    <radialGradient id="pyramidPurplePoint" cx="32%" cy="26%" r="68%">
+      <stop offset="0%" stop-color="#f0d4ff" />
+      <stop offset="20%" stop-color="#b44de0" />
+      <stop offset="72%" stop-color="#6b007b" />
+      <stop offset="100%" stop-color="#43004d" />
+    </radialGradient>
+    <radialGradient id="pyramidGrayPoint" cx="32%" cy="26%" r="68%">
+      <stop offset="0%" stop-color="#cbd5e1" />
+      <stop offset="42%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#334155" />
+    </radialGradient>
+    <radialGradient id="pyramidPointLight" cx="35%" cy="30%" r="32%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+    <filter id="pointShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0.6" dy="0.9" stdDeviation="0.7" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <polygon points="32,9 8,49 30,38" fill="url(#pyramidFaceLeft)" />
+  <polygon points="32,9 30,38 56,41" fill="url(#pyramidFaceBack)" />
+  <polygon points="32,9 43,54 56,41" fill="url(#pyramidFaceRight)" />
+  <polygon points="8,49 43,54 56,41 30,38" fill="url(#pyramidFaceBase)" />
+
+  <g fill="none" stroke="#111827" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="32" y1="9" x2="8" y2="49" />
+    <line x1="32" y1="9" x2="43" y2="54" />
+    <line x1="32" y1="9" x2="56" y2="41" />
+    <line x1="56" y1="41" x2="43" y2="54" />
+  </g>
+
+  <g fill="none" stroke="#111827" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 2.4" opacity="0.78">
+    <line x1="32" y1="9" x2="30" y2="38" />
+    <line x1="8" y1="49" x2="30" y2="38" />
+    <line x1="30" y1="38" x2="56" y2="41" />
+  </g>
+
+  <line x1="8" y1="49" x2="43" y2="54" stroke="#5b1232" stroke-width="1.8" stroke-linecap="round" />
+
+  <g fill="none" stroke="#6b007b" stroke-width="0.7" stroke-linecap="round" stroke-dasharray="2.5 2.2" opacity="0.48">
+    <line x1="32" y1="9" x2="35" y2="46" />
+  </g>
+
+  <g fill="none" stroke="#111827" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.4 2" opacity="0.75">
+    <line x1="30" y1="38" x2="35" y2="46" />
+  </g>
+
+  <g filter="url(#pointShadow)">
+    <circle cx="32" cy="9" r="2" fill="url(#pyramidPurplePoint)" />
+    <circle cx="32" cy="9" r="1.82" fill="none" stroke="#2f0038" stroke-width="0.35" opacity="0.65" />
+    <ellipse cx="31.3" cy="8.2" rx="0.78" ry="0.58" fill="url(#pyramidPointLight)" transform="rotate(-22 31.3 8.2)" />
+
+    <circle cx="8" cy="49" r="2" fill="url(#pyramidBluePoint)" />
+    <circle cx="8" cy="49" r="1.82" fill="none" stroke="#00358f" stroke-width="0.35" opacity="0.65" />
+    <ellipse cx="7.3" cy="48.2" rx="0.78" ry="0.58" fill="url(#pyramidPointLight)" transform="rotate(-22 7.3 48.2)" />
+
+    <circle cx="43" cy="54" r="2" fill="url(#pyramidBluePoint)" />
+    <circle cx="43" cy="54" r="1.82" fill="none" stroke="#00358f" stroke-width="0.35" opacity="0.65" />
+    <ellipse cx="42.3" cy="53.2" rx="0.78" ry="0.58" fill="url(#pyramidPointLight)" transform="rotate(-22 42.3 53.2)" />
+
+    <circle cx="56" cy="41" r="1.75" fill="url(#pyramidGrayPoint)" />
+    <circle cx="56" cy="41" r="1.58" fill="none" stroke="#2f2f2f" stroke-width="0.32" opacity="0.6" />
+
+    <circle cx="30" cy="38" r="1.7" fill="url(#pyramidGrayPoint)" />
+    <circle cx="30" cy="38" r="1.52" fill="none" stroke="#2f2f2f" stroke-width="0.3" opacity="0.6" />
+
+    <circle cx="35" cy="46" r="1.75" fill="url(#pyramidGrayPoint)" />
+    <circle cx="35" cy="46" r="1.58" fill="none" stroke="#2f2f2f" stroke-width="0.32" opacity="0.6" />
+    <ellipse cx="34.4" cy="45.3" rx="0.68" ry="0.5" fill="url(#pyramidPointLight)" transform="rotate(-22 34.4 45.3)" />
+  </g>
+</svg>

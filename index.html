@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <title>GeoMatik3D</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html" charset="UTF-8">
+  <meta name="keywords" content="Graph, functions, axis, javascript, canvas, GeoMatik2D, GeoMatik3D">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="made by mADEMatik">
+  <meta name="author" content="made by mADEMatik">
+  <link rel="icon" type="image/svg+xml" href="src/assets/favicon.png" />
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <div id="rightControls" style="display: none;">
+    <div id="unFoldControl" class="passive">
+      <div>Açınım: <span id="unFoldValue">0</span>°</div>
+      <input id="unFoldSlider" type="range" min="0" max="90" value="0" step="1" disabled />
+    </div>
+
+    <div id="sideControl" class="passive">
+      <div>Kenar Sayısı: <span id="sideValue">4</span></div>
+      <input id="sideSlider" type="range" min="3" max="20" value="4" step="1" />
+    </div>
+  </div>
+
+  <a id="made-signature" href="https://www.madematik.com" target="_blank" rel="noopener noreferrer">
+    <span>m</span><span class="made-highlight">ADEM</span><span>atik</span>
+  </a>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

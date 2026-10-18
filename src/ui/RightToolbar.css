@@ -1,0 +1,218 @@
+.right-toolbar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+
+  overflow: hidden;
+}
+
+.right-toolbar.is-open {
+  gap: 6px;
+}
+
+.right-toolbar button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #bbbbbb;
+  border-radius: 6px;
+  background: white;
+
+  font-size: 18px;
+}
+
+.right-toolbar button:hover {
+  background: #eeeeee;
+}
+
+.right-toolbar-accordion-button {
+  cursor: pointer;
+  flex: 0 0 38px;
+}
+
+.right-toolbar-accordion-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  pointer-events: none;
+
+  transition: transform 180ms ease;
+  transform-origin: center;
+}
+
+.right-toolbar.is-closed .right-toolbar-accordion-icon {
+  transform: rotate(90deg);
+}
+
+.right-toolbar.is-open .right-toolbar-accordion-icon {
+  transform: rotate(180deg);
+}
+
+.right-toolbar .right-toolbar-action {
+  overflow: hidden;
+
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    max-height 180ms ease,
+    margin 180ms ease;
+}
+
+.right-toolbar.is-open .right-toolbar-action {
+  opacity: 1;
+  height: 38px;
+  max-height: 38px;
+  padding: 0;
+  border-width: 1px;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.right-toolbar.is-closed .right-toolbar-action {
+  opacity: 0;
+  height: 0;
+  max-height: 0;
+  min-height: 0;
+  padding: 0;
+  border-width: 0;
+  margin: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.right-toolbar.is-open .right-toolbar-action:nth-of-type(2) {
+  transition-delay: 20ms;
+}
+
+.right-toolbar.is-open .right-toolbar-action:nth-of-type(3) {
+  transition-delay: 40ms;
+}
+
+.right-toolbar.is-open .right-toolbar-action:nth-of-type(4) {
+  transition-delay: 60ms;
+}
+
+.right-toolbar.is-open .right-toolbar-action:nth-of-type(5) {
+  transition-delay: 80ms;
+}
+
+.right-toolbar.is-open .right-toolbar-action:nth-of-type(6) {
+  transition-delay: 100ms;
+}
+
+.right-toolbar.is-open .right-toolbar-action:nth-of-type(7) {
+  transition-delay: 120ms;
+}
+
+.right-toolbar.is-closed .right-toolbar-action {
+  transition-delay: 0ms;
+}
+
+.right-toolbar .toolbar-icon {
+  width: 32px;
+  height: 32px;
+  display: block;
+  pointer-events: none;
+}
+
+.right-toolbar .delete-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  pointer-events: none;
+}
+
+#deleteButton.active {
+  cursor: pointer;
+  background: white;
+  border-color: #bbbbbb;
+}
+
+#hideButton.active {
+  cursor: pointer;
+  background: #e5e7eb;
+  border-color: #6b7280;
+}
+
+#showButton.active {
+  cursor: pointer;
+  background: #dbeafe;
+  border-color: #2563eb;
+}
+
+#showButton.active .toolbar-icon {
+  filter: none;
+  opacity: 1;
+}
+
+#hideButton.active .toolbar-icon {
+  filter: grayscale(1);
+  opacity: 0.82;
+}
+
+#deleteButton.active .delete-icon {
+  filter: none;
+  opacity: 1;
+}
+
+#deleteButton.passive,
+#deleteButton:disabled,
+#showButton:disabled,
+#hideButton:disabled,
+#undoButton:disabled,
+#redoButton:disabled {
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+#deleteButton.passive:hover,
+#deleteButton:disabled:hover,
+#showButton:disabled:hover,
+#hideButton:disabled:hover,
+#undoButton:disabled:hover,
+#redoButton:disabled:hover {
+  background: #f3f4f6;
+}
+
+#deleteButton.passive .delete-icon,
+#deleteButton:disabled .delete-icon {
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+
+#showButton:disabled .toolbar-icon,
+#hideButton:disabled .toolbar-icon,
+#undoButton:disabled .toolbar-icon,
+#redoButton:disabled .toolbar-icon {
+  filter: grayscale(1);
+  opacity: 0.42;
+}
+
+#undoButton.active,
+#redoButton.active {
+  cursor: pointer;
+  background: #eef2ff;
+  border-color: #4f46e5;
+}
+
+#deleteButton {
+  color: #b91c1c;
+  font-size: 24px;
+  line-height: 1;
+}

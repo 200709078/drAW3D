@@ -1,10 +1,10 @@
-# GeoMatik3D
+# drAW3D
 
 Tarayıcıda çalışan **3B geometri ve açınım (net)** uygulaması. Three.js ve TypeScript ile geliştirilmiştir.
 
 made by **mADEMatik** — [madematik.com](https://www.madematik.com)
 
-İlgili proje: [GeoMatik2D](https://github.com/200709078/GeoMatik2D)
+İlgili proje: [drAW2D](https://github.com/200709078/drAW2D)
 
 ## Özellikler
 
@@ -29,7 +29,7 @@ npm run preview   # Üretilen dist/ çıktısını önizleme
 ## Proje yapısı
 
 ```
-GeoMatik3D/
+drAW3D/
 ├── index.html
 ├── src/
 │   ├── main.ts            # Uygulama girişi ve araç/UI bağlama

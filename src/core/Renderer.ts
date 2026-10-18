@@ -14,10 +14,10 @@ function showWebGLError(message: string) {
   document.body.classList.add("webgl-error-page")
   document.body.innerHTML = `
     <main class="webgl-error" role="alert">
-      <h1>GeoMatik3D açılamadı</h1>
+      <h1>drAW3D açılamadı</h1>
       <p>${message}</p>
       <ul>
-        <li>GeoMatik3D açık olan diğer sekmeleri kapatıp bu sayfayı yenileyin.</li>
+        <li>drAW3D açık olan diğer sekmeleri kapatıp bu sayfayı yenileyin.</li>
         <li>Tarayıcıyı tamamen kapatıp tekrar açın.</li>
         <li>Chrome/Edge ayarlarında donanım hızlandırmanın açık olduğundan emin olun.</li>
         <li>Hata devam ederse ekran kartı sürücüsünü güncelleyin veya farklı bir tarayıcı deneyin.</li>

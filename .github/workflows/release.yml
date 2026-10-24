@@ -1,0 +1,117 @@
+# Linux (.deb, AppImage) ve Windows (.exe) paketlerini üretip GitHub sürümüne yükler.
+# drAW, drAW2D ve drAW3D aynı dosyayı kullanır; uygulama adı ve sürüm package.json'dan okunur.
+# - "v0.0.4" gibi bir etiket gönderilince o sürüm oluşturulur (package.json sürümüyle aynı olmalı).
+# - Actions sekmesindeki "Run workflow" düğmesi, package.json'daki sürümün paketlerini yeniden
+#   üretip mevcut sürümdeki dosyaların yerine koyar (sürüm yoksa oluşturur).
+# - "yayinla" kapalı çalıştırılırsa yalnızca paketler üretilir (Windows makinesi gerekmeden .exe):
+#     gh workflow run release.yml -f yayinla=false
+#     gh run download --name paket-Windows -D release
+name: Sürüm paketleri
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      yayinla:
+        description: "Paketleri GitHub sürümüne yükle"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Paketle (${{ matrix.name }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            target: --linux
+          - name: Windows
+            os: windows-latest
+            target: --win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Etiket ile package.json sürümünü karşılaştır
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Etiket $GITHUB_REF_NAME, package.json sürümü $version. Önce package.json sürümünü güncelleyin."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Testler
+        if: runner.os == 'Linux'
+        run: |
+          # Playwright testleri olan projelerde tarayıcı kurulur.
+          if [ -f playwright.config.ts ]; then npx playwright install --with-deps chromium; fi
+          npm test
+
+      - name: Paketleri üret
+        shell: bash
+        # npm run build tip denetimini de yapar; yayımlamayı bu iş akışı yapar.
+        run: npm run build && npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: paket-${{ matrix.name }}
+          path: |
+            release/*.deb
+            release/*.AppImage
+            release/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: GitHub sürümünü güncelle
+    needs: build
+    if: github.event_name == 'push' || inputs.yayinla
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: paketler
+          merge-multiple: true
+
+      - name: Sağlama dosyası ve sürüm notu
+        run: node scripts/release-assets.mjs paketler
+
+      - name: Sürümü oluştur veya dosyaları değiştir
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          name="$(node -p "const p = require('./package.json'); p.build?.productName ?? p.productName")"
+          version="$(node -p "require('./package.json').version")"
+          tag="v$version"
+          files=(paketler/"$name"-linux-x86_64.AppImage paketler/"$name"-linux-amd64.deb paketler/"$name"-win-x64.exe paketler/SHA256SUMS.txt)
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release edit "$tag" --notes-file paketler/RELEASE_NOTES.md
+            gh release upload "$tag" "${files[@]}" --clobber
+          else
+            gh release create "$tag" "${files[@]}" --target "$GITHUB_SHA" \
+              --title "$name $tag — Linux & Windows" --notes-file paketler/RELEASE_NOTES.md
+          fi
+          echo "Sürüm: $(gh release view "$tag" --json url --jq .url)" >> "$GITHUB_STEP_SUMMARY"

@@ -7,7 +7,12 @@
   "type": "module",
   "description": "drAW3D — 3B geometri ve açınım uygulaması",
   "author": "mADEMatik <madematik@madematik.com>",
+  "license": "MIT",
   "homepage": "https://www.madematik.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/200709078/drAW3D.git"
+  },
   "main": "dist-electron/main.js",
   "engines": {
     "node": ">=22.12.0"
@@ -46,7 +51,7 @@
       "output": "release",
       "buildResources": "build"
     },
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "artifactName": "${productName}-${os}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -65,6 +70,9 @@
           "Comment": "3B geometri ve açınım"
         }
       }
+    },
+    "deb": {
+      "packageCategory": "education"
     },
     "win": {
       "target": "nsis",

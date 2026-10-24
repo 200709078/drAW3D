@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kesit">
+  <path d="M14 18h30v34H14z" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+  <path d="M14 18 24 10h30L44 18M54 10v34L44 52" fill="#f1f5f9" stroke="#334155" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M6 36 54 24 60 32 12 44z" fill="#bfdbfe" fill-opacity="0.6" stroke="#1d4ed8" stroke-width="2.5"/>
+  <path d="M14 34 44 27 54 25" fill="none" stroke="#e11d48" stroke-width="4" stroke-linecap="round"/>
+</svg>

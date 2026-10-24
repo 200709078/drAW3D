@@ -61,12 +61,31 @@ try {
   }
   const types = await page.evaluate(() => window.drAW3DApp.objects().map(object => object.type))
   assert.ok(types.includes('prism'), 'Prizma çizilebilmeli')
+
+  // The command input builds objects, cards show their values and math.js runs in the package.
+  const input = page.locator('#giris')
+  await input.fill('h=Hacim(prizma1)')
+  await input.press('Enter')
+  await page.waitForFunction(() => window.drAW3DApp.objects().some(object => object.name === 'h'))
+  const card = page.locator('#objectsContainer > div').first()
+  assert.match(await card.locator('.expr-block output').textContent(), /^h = \d/)
+  assert.ok(await card.locator('.sil').evaluate(button => getComputedStyle(button).backgroundImage.includes('clear.svg')),
+    'Kart silme simgesi CSS ile yüklenmeli')
   assert.equal(await page.evaluate(() => typeof window.require), 'undefined')
-  assert.deepEqual(await page.evaluate(() => Object.keys(window.drAW3DDesktop ?? {})), ['windowControls'])
+  assert.deepEqual(await page.evaluate(() => Object.keys(window.drAW3DDesktop ?? {})), ['windowControls', 'files'])
   assert.equal(await page.evaluate(() => window.drAW3DToolbar?.getActiveTool().action), 'select')
 
   const failedAssets = await page.evaluate(async () => {
-    const results = await Promise.all([...document.images].map(async image => {
+    // CSS background images (the card icons) resolve against the stylesheet, not the page.
+    const backgrounds = [...document.querySelectorAll('*')]
+      .map(element => getComputedStyle(element).backgroundImage)
+      .flatMap(value => [...value.matchAll(/url\("?([^")]+)"?\)/g)].map(match => match[1]))
+    const images = [...document.images, ...[...new Set(backgrounds)].map(source => {
+      const image = new Image()
+      image.src = source
+      return image
+    })]
+    const results = await Promise.all(images.map(async image => {
       try {
         await image.decode()
         return null
@@ -79,7 +98,7 @@ try {
   assert.deepEqual(failedAssets, [], 'Simgeler paket içinde bulunmalı')
   assert.deepEqual(errors, [], 'Electron içinde JavaScript veya varlık yükleme hatası olmamalı')
   await page.screenshot({ path: path.join('test-results', 'electron.png') })
-  console.log('Electron kontrolü geçti: file:// açılış, başlık çubuğu, WebGL, prizma, araç çubuğu, varlıklar ve renderer yalıtımı.')
+  console.log('Electron kontrolü geçti: file:// açılış, başlık çubuğu, WebGL, prizma, komut girişi ve kart, araç çubuğu, varlıklar ve renderer yalıtımı.')
 } finally {
   await application.close()
 }

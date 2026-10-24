@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Paralel Düzlem">
+  <path d="M6 50 22 38h36L42 50z" fill="#e2e8f0" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M6 30 22 18h36L42 30z" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="32" cy="24" r="5" fill="#2563eb"/>
+</svg>

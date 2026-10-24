@@ -5,6 +5,7 @@ export const POINT_COLORS: Readonly<Record<PointKind, string>> = {
   on: '#0b6b3a',
   height: '#800080',
   vertex: '#808080',
+  derived: '#374151',
 }
 
 export const SELECTED_COLOR = '#ffaa00'

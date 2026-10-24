@@ -1,4 +1,6 @@
-import { app, BrowserWindow, ipcMain, shell, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
+import { readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const indexPath = fileURLToPath(new URL('../dist/index.html', import.meta.url))
@@ -41,6 +43,80 @@ function registerWindowControls(): void {
   ipcMain.on('window:close', event => senderWindow(event)?.close())
   ipcMain.handle('window:is-maximized', event => senderWindow(event)?.isMaximized() ?? false)
   ipcMain.handle('window:is-fullscreen', event => senderWindow(event)?.isFullScreen() ?? false)
+}
+
+type ExportKind = 'drw3' | 'png' | 'svg' | 'pdf'
+
+const FILTERS: Readonly<Record<ExportKind, Electron.FileFilter>> = {
+  drw3: { name: 'drAW3D belgesi', extensions: ['drw3'] },
+  png: { name: 'PNG görüntüsü', extensions: ['png'] },
+  svg: { name: 'SVG çizimi', extensions: ['svg'] },
+  pdf: { name: 'PDF belgesi', extensions: ['pdf'] },
+}
+
+const isKind = (value: unknown): value is ExportKind => typeof value === 'string' && value in FILTERS
+const isName = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length < 256
+
+/** Paths the user picked in a dialog this session; the renderer may write only to these. */
+const grantedPaths = new Set<string>()
+
+function withExtension(file: string, kind: ExportKind): string {
+  return path.extname(file).toLowerCase() === `.${kind}` ? file : `${file}.${kind}`
+}
+
+async function askSavePath(event: IpcMainInvokeEvent, name: string, kind: ExportKind): Promise<string | null> {
+  const window = senderWindow(event)
+  const options = { defaultPath: path.basename(name), filters: [FILTERS[kind]] }
+  const result = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options)
+  if (result.canceled || !result.filePath) return null
+  const file = withExtension(result.filePath, kind)
+  grantedPaths.add(file)
+  return file
+}
+
+/** A sandboxed window without scripts or preload renders the page into a PDF. */
+async function pdfOf(html: string): Promise<Buffer> {
+  const window = new BrowserWindow({ show: false, webPreferences: { sandbox: true, javascript: false, contextIsolation: true } })
+  try {
+    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    return await window.webContents.printToPDF({ pageSize: 'A4', printBackground: true, margins: { top: 0, bottom: 0, left: 0, right: 0 } })
+  } finally {
+    window.destroy()
+  }
+}
+
+/** Opening and saving documents and exports through native dialogs. */
+function registerFiles(): void {
+  ipcMain.handle('file:open', async event => {
+    const window = senderWindow(event)
+    const options: Electron.OpenDialogOptions = { properties: ['openFile'], filters: [FILTERS.drw3] }
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options)
+    const file = result.canceled ? undefined : result.filePaths[0]
+    if (!file) return null
+    grantedPaths.add(file)
+    return { path: file, name: path.basename(file), text: await readFile(file, 'utf8') }
+  })
+  ipcMain.handle('file:save', async (event, text: unknown, current: unknown, name: unknown) => {
+    if (typeof text !== 'string' || !isName(name)) return null
+    const file = typeof current === 'string' && grantedPaths.has(current) ? current : await askSavePath(event, name, 'drw3')
+    if (!file) return null
+    await writeFile(file, text, 'utf8')
+    return { path: file, name: path.basename(file) }
+  })
+  ipcMain.handle('file:export', async (event, data: unknown, name: unknown, kind: unknown) => {
+    if (!(typeof data === 'string' || data instanceof Uint8Array) || !isName(name) || !isKind(kind) || kind === 'drw3') return null
+    const file = await askSavePath(event, name, kind)
+    if (!file) return null
+    await writeFile(file, data)
+    return path.basename(file)
+  })
+  ipcMain.handle('file:save-pdf', async (event, html: unknown, name: unknown) => {
+    if (typeof html !== 'string' || !isName(name)) return null
+    const file = await askSavePath(event, name, 'pdf')
+    if (!file) return null
+    await writeFile(file, await pdfOf(html))
+    return path.basename(file)
+  })
 }
 
 async function createWindow(): Promise<void> {
@@ -97,6 +173,7 @@ async function createWindow(): Promise<void> {
 void app.whenReady().then(async () => {
   app.setAppUserModelId('com.madematik.draw3d')
   registerWindowControls()
+  registerFiles()
   await createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

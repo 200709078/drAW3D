@@ -5,6 +5,7 @@ import { SelectController } from '../src/app/select-tool'
 import { ToolController, previewShape, type ToolAction } from '../src/app/tools'
 import { resolveDocument, type ShapeMap } from '../src/document/dependencies'
 import { GeometryDocument } from '../src/document/geometry-document'
+import { submitCommand } from '../src/document/submit'
 import type { GeometryObject, PointObject, PolyhedronObject } from '../src/geometry/types'
 import { distance, vec } from '../src/geometry/vec3'
 import { front, frontSpot, spot, topDown } from './fixtures/top-down'
@@ -14,8 +15,9 @@ function setup(projector: Projector = topDown) {
   let shapes: ShapeMap = new Map()
   const finished: boolean[] = []
   const refresh = () => { shapes = resolveDocument(document.objects) }
+  const reports: string[] = []
   const tools = new ToolController({
-    document, projector, shapes: () => shapes, refresh,
+    document, projector, shapes: () => shapes, refresh, report: message => reports.push(message),
     selectPoint: id => { document.activeId = id },
     finished: keep => {
       finished.push(keep)
@@ -29,7 +31,14 @@ function setup(projector: Projector = topDown) {
     tools.pointerDown(spot(x, z), 'mouse')
     refresh()
   }
-  return { document, tools, select, use, click, finished, refresh, shapes: () => shapes }
+  const type = (...sources: string[]) => {
+    for (const source of sources) {
+      const result = submitCommand(document, source)
+      if (!result.ok) throw new Error(`${source}: ${result.error}`)
+    }
+    refresh()
+  }
+  return { document, tools, select, use, click, finished, refresh, shapes: () => shapes, type, reports }
 }
 
 const types = (objects: readonly GeometryObject[]) => objects.map(object => object.type)
@@ -307,4 +316,96 @@ test('isabet: üst üste binen kenarlardan kameraya yakın olan, yüzün arkası
   const view = front
   const behind = hitPart(objects, app.shapes(), view, frontSpot(2, 0.2), 10)!
   expect(behind.position.z).toBeCloseTo(0, 9)
+})
+
+test('orta nokta aracı: iki nokta veya bir doğru parçası', () => {
+  const app = setup()
+  app.use('midpoint')
+  app.click(0, 0)
+  app.click(4, 2)
+  const midpoint = points(app.document.objects).at(-1)!
+  expect(midpoint.constraint).toMatchObject({ type: 'construct', rule: 'midpoint' })
+  expect(midpoint.position).toEqual(expect.objectContaining({ x: expect.closeTo(2, 6), z: expect.closeTo(1, 6) }))
+  expect(app.tools.action).toBe('select')
+  app.type('s=DoğruParçası((0,0,6),(6,0,6))')
+  app.use('midpoint')
+  app.click(3, 6.2)
+  const onSegment = points(app.document.objects).at(-1)!
+  expect(onSegment.constraint).toMatchObject({ rule: 'midpoint', sources: [app.document.objects.find(object => object.name === 's')!.id] })
+  expect(onSegment.position).toEqual(expect.objectContaining({ x: 3, z: 6 }))
+})
+
+test('kesiştir ve dik doğru araçları nesneleri seçer; desteklenmeyen çift bildirilir', () => {
+  const app = setup()
+  // Seen from above: the plane's square spans z −16.7…13.3, the line runs at z = 20 and meets y = 2 at x = −8.
+  app.type('p=Düzlem((-5,2,-5),(5,2,-5),(-5,2,5))', 'd=Doğru((-20,5,20),(20,-5,20))')
+  app.use('intersect')
+  app.click(0, 20)
+  // The same object twice is ignored.
+  app.click(4, 20)
+  expect(app.tools.stagedCount).toBe(1)
+  app.click(0, 0)
+  const meet = points(app.document.objects).at(-1)!
+  expect(meet.constraint).toMatchObject({ rule: 'intersect' })
+  expect(meet.position).toEqual(expect.objectContaining({ x: expect.closeTo(-8, 6), y: expect.closeTo(2, 6), z: expect.closeTo(20, 6) }))
+  app.use('perpendicularLine')
+  app.click(-20, -20)
+  app.click(1, 1)
+  const line = app.document.objects.at(-1)!
+  expect(line).toMatchObject({ type: 'line', construction: { kind: 'perpendicular' } })
+  app.type('Küre((30,0,30),1)', 'Küre((34,0,30),1)')
+  app.use('intersect')
+  app.click(30, 30)
+  app.click(34, 30)
+  expect(app.reports).toEqual(['Bu nesnelerin kesişimi desteklenmiyor: doğru, düzlem ve küre seçin.'])
+  expect(app.document.hasDraft).toBe(false)
+})
+
+test('paralel düzlem aracı yalnız düzlem kabul eder', () => {
+  const app = setup()
+  app.type('p=Düzlem((-5,2,-5),(5,2,-5),(-5,2,5))', 'd=Doğru((-20,5,20),(20,-5,20))')
+  app.use('parallelPlane')
+  app.click(-20, -20)
+  // The line is not a plane: ignored, the tool waits.
+  app.click(0, 20)
+  expect(app.tools.stagedCount).toBe(1)
+  app.click(0, 0)
+  expect(app.document.objects.at(-1)).toMatchObject({ type: 'plane', construction: { kind: 'parallel' } })
+})
+
+test('yeni cisim araçları iki noktayla kurar: küp, düzgün çokyüzlüler, kesik piramit ve kesik koni', () => {
+  const app = setup()
+  app.use('cube')
+  app.click(0, 0)
+  app.click(4, 0)
+  expect(app.document.objects.find(object => object.type === 'regular')).toMatchObject({ solid: 'cube' })
+  app.use('icosahedron')
+  app.click(10, 0)
+  app.click(12, 0)
+  expect(app.document.objects.filter(object => object.type === 'regular').map(object => (object as { solid: string }).solid))
+    .toEqual(['cube', 'icosahedron'])
+  app.use('frustum')
+  app.click(20, 0)
+  app.click(24, 0)
+  expect(app.document.objects.find(object => object.type === 'pyramid')).toMatchObject({ topRatio: 0.5 })
+  app.use('frustumCone')
+  app.click(30, 0)
+  app.click(32, 0)
+  expect(app.document.objects.find(object => object.type === 'cone')).toMatchObject({ topRatio: 0.5 })
+  expect(app.reports).toEqual([])
+})
+
+test('kesit aracı: önce cisim, sonra düzlem', () => {
+  const app = setup()
+  app.type('Küp((0,0,0),(4,0,0))', 'p=Düzlem((-5,2,-5),(5,2,-5),(-5,2,5))')
+  app.use('section')
+  // A plane is not a solid: ignored, the tool waits.
+  app.click(12, 10)
+  expect(app.tools.stagedCount).toBe(0)
+  app.click(2, -2)
+  expect(app.tools.stagedCount).toBe(1)
+  app.click(12, 10)
+  const section = app.document.objects.at(-1)!
+  expect(section).toMatchObject({ type: 'section' })
+  expect(app.shapes().get(section.id)).toMatchObject({ kind: 'section', area: expect.closeTo(16, 9) })
 })

@@ -19,11 +19,11 @@ export class LabelLayer {
 
   constructor(private container: HTMLElement) {}
 
-  set(key: string, text: string, color: string, anchor: Vec3): void {
+  set(key: string, text: string, color: string, anchor: Vec3, className = 'scene-label'): void {
     let label = this.labels.get(key)
     if (!label) {
       const element = document.createElement('span')
-      element.className = 'scene-label'
+      element.className = className
       element.dataset.key = key
       this.container.append(element)
       label = { element, anchor }

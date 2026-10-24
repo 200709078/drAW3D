@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Yirmiyüzlü">
+  <path d="M32 4 56 18v28L32 60 8 46V18z" fill="#f9a8d4" stroke="#831843" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 4 20 26h24zM20 26 32 46l12-20M8 18l12 8-12 20M56 18l-12 8 12 20M20 26v0M32 46 8 46M32 46h24M32 46v14" fill="#fbcfe8" stroke="#831843" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>

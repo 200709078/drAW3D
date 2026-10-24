@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sekizyüzlü">
+  <path d="M32 4 8 32l18 6zM32 4l24 28-30 6zM8 32l24 28-6-22zM56 32 32 60l-6-22z" fill="#c4b5fd" stroke="#4c1d95" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 4l-6 34 30-6zM26 38l6 22 24-28z" fill="#8b5cf6" stroke="#4c1d95" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>

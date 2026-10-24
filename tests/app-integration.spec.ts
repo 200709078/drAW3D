@@ -52,7 +52,7 @@ async function buildPrism(page: Page): Promise<void> {
 test('sayfa kabuğu: gruplu araç çubuğu, simgeler, etkisiz düğmeler, hatasız açılış', async ({ page }) => {
   const errors = await open(page)
   await expect(page).toHaveTitle('drAW3D | mADEMatik')
-  await expect(page.locator('#toolGroups .tool-group-button')).toHaveCount(6)
+  await expect(page.locator('#toolGroups .tool-group-button')).toHaveCount(7)
   for (const id of ['undo', 'redo', 'delete', 'hide', 'showAll']) await expect(page.locator(`#${id}`)).toBeDisabled()
   await expect(page.locator('#groundToggle')).toBeEnabled()
   const broken = await page.evaluate(async () => {
@@ -90,25 +90,33 @@ test('araç menüsünden prizma seçilir, iki tıklamayla kurulur, geri al ve yi
   expect(errors).toEqual([])
 })
 
-test('cisim seçilince kenar sayısı ve açınım kaydırıcıları çıkar; değişiklikler tek adımda geri alınır', async ({ page }) => {
+test('cisim seçilince kartında kenar sayısı ve açınım kaydırıcıları çıkar; değişiklikler tek adımda geri alınır', async ({ page }) => {
   await open(page)
   await buildPrism(page)
   await clickAt(page, 2, 2, 0)
-  await expect(page.locator('#objectControls')).toBeVisible()
-  await page.locator('#sideSlider').fill('7')
+  const prismId = (await objects(page)).find(object => object.type === 'prism')!.id
+  const card = page.locator(`#objectsContainer [data-id="${prismId}"]`)
+  await expect(card).toHaveClass(/is-active/)
+  await expect(page.locator('#objectControls')).toBeHidden()
+  await expect(page.locator(`[id="${prismId}-labelA"]`)).toHaveText('Kenar')
+  await page.locator(`[id="${prismId}-sliderA"]`).fill('7')
   await expect.poll(async () => (await objects(page)).filter(object => object.type === 'point'
     && (object as PointObject).constraint?.type === 'vertex').length).toBe(5 + 6)
-  await page.locator('#unfoldSlider').fill('90')
-  await expect(page.locator('#unfoldValue')).toHaveText('90')
-  const depth = await page.evaluate(() => window.drAW3DApp!.objects().length)
-  expect(depth).toBeGreaterThan(0)
+  await page.locator(`[id="${prismId}-sliderB"]`).fill('90')
+  await expect.poll(async () => ((await objects(page)).find(object => object.type === 'prism') as { unfold: number }).unfold).toBe(90)
   await page.locator('#undo').click()
-  await expect(page.locator('#objectControls')).toBeHidden()
   const [solid] = (await objects(page)).filter(object => object.type === 'prism') as { unfold: number; sideCount: number }[]
   expect(solid!.unfold).toBe(0)
   expect(solid!.sideCount).toBe(7)
   await page.locator('#undo').click()
   expect(((await objects(page)).find(object => object.type === 'prism') as { sideCount: number }).sideCount).toBe(4)
+  // With the panel hidden the same sliders float over the scene.
+  await page.locator('#btnCalc').click()
+  await expect(page.locator('#rightWrapper')).toHaveClass(/hide/)
+  await clickAt(page, 2, 2, 0)
+  await expect(page.locator('#objectControls')).toBeVisible()
+  await page.locator('#unfoldSlider').fill('45')
+  await expect(page.locator('#unfoldValue')).toHaveText('45')
 })
 
 test('serbest nokta fareyle sürüklenir; bağlı cisim izler', async ({ page }) => {
@@ -222,13 +230,15 @@ test('nokta aracı cismin yüzüne bağlı nokta koyar; nokta yüz üzerinde kay
 test.describe('dar ekran ve dokunma', () => {
   test.use({ viewport: { width: 400, height: 800 }, hasTouch: true })
 
-  test('araçlar alttan açılan panelde; dokunarak doğru parçası çizilir; iki parmak çizmez', async ({ page }) => {
+  test('araçlar alt panelin Araçlar sekmesinde; dokunarak doğru parçası çizilir; iki parmak çizmez', async ({ page }) => {
     const errors = await open(page)
     await expect(page.locator('#toolGroups')).toBeHidden()
+    await expect(page.locator('#rightWrapper')).toHaveClass(/hide/)
     await page.locator('#currentTool').click()
-    await expect(page.locator('#toolsSheet')).toBeVisible()
+    await expect(page.locator('#toolsPanel')).toBeVisible()
     await page.locator('#paneltool-segment').click()
-    await expect(page.locator('#toolsSheet')).toBeHidden()
+    // The sheet makes way for the scene the tool is used on.
+    await expect(page.locator('#rightWrapper')).toHaveClass(/hide/)
     const client = await page.context().newCDPSession(page)
     const touch = async (type: string, points: { x: number; y: number }[]) => {
       await client.send('Input.dispatchTouchEvent', { type, touchPoints: points.map((point, id) => ({ ...point, id })) })

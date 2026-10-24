@@ -5,8 +5,8 @@ import type { MaterialCache } from './materials'
 
 const SHAFT = new THREE.CylinderGeometry(0.06, 0.06, 0.66, 12)
 const HEAD = new THREE.ConeGeometry(0.16, 0.36, 16)
-/** World size of the arrows at one unit from the camera. */
-const SCREEN_SCALE = 0.045
+/** Arrow scale in CSS pixels (the unit arrow is about 1.6 units long). */
+const SCREEN_PIXELS = 25
 
 /** Double arrows around the selected point showing the directions it can be dragged in. */
 export class ArrowView {
@@ -43,9 +43,10 @@ export class ArrowView {
     })
   }
 
-  /** Keep a constant size on screen. */
-  scaleFor(camera: THREE.Camera): void {
+  /** Keep a constant size on screen; `pixelSize` is the world size of a pixel at a point. */
+  scaleFor(pixelSize: (point: Vec3) => number): void {
     if (!this.root.visible) return
-    this.root.scale.setScalar(Math.max(camera.position.distanceTo(this.root.position) * SCREEN_SCALE, 0.2))
+    const { x, y, z } = this.root.position
+    this.root.scale.setScalar(Math.max(pixelSize({ x, y, z }) * SCREEN_PIXELS, 0.05))
   }
 }

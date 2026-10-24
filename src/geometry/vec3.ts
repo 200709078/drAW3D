@@ -117,6 +117,7 @@ export function angleBetween(a: Vec3, b: Vec3): number {
 }
 
 export const toRadians = (degrees: number): number => degrees * Math.PI / 180
+export const atan2Degrees = (y: number, x: number): number => Math.atan2(y, x) * 180 / Math.PI
 export const toDegrees = (radians: number): number => radians * 180 / Math.PI
 export const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
 

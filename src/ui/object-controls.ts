@@ -3,6 +3,8 @@ export interface ObjectControlsState {
   sides: number | null
   /** Opening angle of the selected solid in degrees, with its maximum. */
   unfold: { value: number; max: number } | null
+  /** The selected solid's net is playing. */
+  playing?: boolean
 }
 
 export interface ObjectControlsHandlers {
@@ -10,6 +12,8 @@ export interface ObjectControlsHandlers {
   onUnfold(value: number): void
   /** The slider was released: the change is one history step. */
   onCommit(): void
+  /** Start or stop playing the selected solid's net. */
+  onPlay?(): void
 }
 
 export interface ObjectControls {
@@ -25,6 +29,8 @@ export function createObjectControls(handlers: ObjectControlsHandlers): ObjectCo
   const unfoldControl = document.getElementById('unfoldControl')!
   const unfoldSlider = document.getElementById('unfoldSlider') as HTMLInputElement
   const unfoldValue = document.getElementById('unfoldValue')!
+  const play = document.getElementById('unfoldPlay') as HTMLButtonElement | null
+  play?.addEventListener('click', () => handlers.onPlay?.())
 
   // While a slider is dragged, refreshes must not move it under the finger.
   let adjusting: HTMLInputElement | null = null
@@ -46,7 +52,12 @@ export function createObjectControls(handlers: ObjectControlsHandlers): ObjectCo
   }
 
   return {
-    show({ sides, unfold }) {
+    show({ sides, unfold, playing }) {
+      if (play) {
+        play.textContent = playing ? '⏸' : '▶'
+        play.title = playing ? 'Durdur' : 'Oynat'
+        play.setAttribute('aria-label', play.title)
+      }
       sideControl.hidden = sides === null
       unfoldControl.hidden = unfold === null
       panel.hidden = sides === null && unfold === null

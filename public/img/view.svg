@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Görünüm">
+  <path d="M32 8 54 20v24L32 56 10 44V20z" fill="#dbeafe" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M10 20l22 12 22-12M32 32v24" fill="none" stroke="#1d4ed8" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M32 32 10 44M32 32l22 12" fill="none" stroke="#1d4ed8" stroke-width="2.5" stroke-dasharray="4 4"/>
+</svg>

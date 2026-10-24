@@ -65,6 +65,14 @@ export class GeometryDocument {
     this.allocatedThrough = nextId
   }
 
+  /** Put the same objects in a new order (dependencies first after a redefinition). */
+  arrange(order: readonly GeometryObject[]): void {
+    if (order.length !== this.working.length || order.some(object => !this.working.includes(object))) {
+      throw new Error('Yeni sıra belgedeki nesnelerin aynısı olmalı.')
+    }
+    this.working = [...order]
+  }
+
   remove(id: ObjectId): boolean {
     const index = this.working.findIndex(object => object.id === id)
     if (index < 0) return false
@@ -81,6 +89,14 @@ export class GeometryDocument {
     this.drafts.clear()
     this.editing = false
     return changed
+  }
+
+  /** Start over from these objects with an empty history (a restored autosave). */
+  reset(objects: GeometryObject[]): void {
+    this.clear()
+    this.append(...objects)
+    this.snapshots = [structuredClone(this.working)]
+    this.cursor = 0
   }
 
   trackDraft(id: ObjectId): void {

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 import {
-  maxUnfoldAngle, polygonArea, polyhedronShape, roundShape, surfaceArea, type PolyhedronShape, type RoundShape,
+  polygonArea, polyhedronShape, roundShape, surfaceArea, type PolyhedronShape, type RoundShape,
 } from '../src/geometry/solids'
-import { unfoldSolid, type Net } from '../src/geometry/unfold'
+import { maxUnfoldAngle, unfoldSolid, type Net } from '../src/geometry/unfold'
 import { distance, dot, sub, vec, type Vec3 } from '../src/geometry/vec3'
 
 const A = vec(0, 0, 0)

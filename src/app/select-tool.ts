@@ -1,3 +1,4 @@
+import { releaseField } from '../document/definitions'
 import type { ShapeMap } from '../document/dependencies'
 import { selectionTarget } from '../document/editing'
 import type { GeometryDocument } from '../document/geometry-document'
@@ -6,6 +7,12 @@ import { MIN_HEIGHT, isPoint, isSolid, pointKind, type ObjectId, type PointObjec
 import { UP, X_AXIS, Z_AXIS, add, closestOnLineToRay, sub, type Vec3 } from '../geometry/vec3'
 import type { Projector, ScreenPoint } from './camera-state'
 import { hitPart, hitTolerance, nearestPoint, planePoint, type PointerKind } from './hit-test'
+
+/** Locked vertices and constructed points follow their objects and are never dragged. */
+function isDraggable(point: PointObject): boolean {
+  const kind = pointKind(point)
+  return kind !== 'vertex' && kind !== 'derived'
+}
 
 /** A selected point can be grabbed from this far away (fingers cover it). */
 export const SELECTED_POINT_GRAB_PX = 70
@@ -58,7 +65,7 @@ export class SelectController {
     const hit = point ? null : hitPart(document.objects, this.deps.shapes(), projector, spot, tolerance)
     if (!point && !hit) {
       const selected = this.selectedPoint()
-      const screen = selected && pointKind(selected) !== 'vertex' ? projector.toScreen(selected.position) : null
+      const screen = selected && isDraggable(selected) ? projector.toScreen(selected.position) : null
       if (screen && Math.hypot(screen.x - spot.x, screen.y - spot.y) <= SELECTED_POINT_GRAB_PX) point = selected
     }
     if (!point) {
@@ -70,7 +77,7 @@ export class SelectController {
     if (document.activeId !== point.id) this.verticalPointId = null
     document.activeId = point.id
     const kindOfPoint = pointKind(point)
-    if (kindOfPoint !== 'vertex') {
+    if (isDraggable(point)) {
       const mode: DragMode = kindOfPoint === 'on' ? 'on' : kindOfPoint === 'height' ? 'height'
         : this.verticalPointId === point.id ? 'vertical' : 'horizontal'
       const ground = mode === 'horizontal' ? planePoint(projector, spot, point.position.y) : null
@@ -102,12 +109,14 @@ export class SelectController {
         const ground = planePoint(projector, spot, drag.height)
         if (!ground) return false
         point.position = { ...add(ground, drag.offset), y: drag.height }
+        releaseField(point, 'x', 'z')
         return true
       }
       case 'vertical': {
         const along = closestOnLineToRay(point.position, UP, ray)
         if (along === null) return false
         point.position = { ...point.position, y: point.position.y + along }
+        releaseField(point, 'y')
         return true
       }
       case 'on': {
@@ -120,13 +129,23 @@ export class SelectController {
         return true
       }
       case 'height': {
-        const owner = point.constraint ? this.deps.document.get(point.constraint.ownerId) : undefined
+        const owner = point.constraint?.type === 'height' ? this.deps.document.get(point.constraint.ownerId) : undefined
         const shape = owner ? this.deps.shapes().get(owner.id) : undefined
-        if (!isSolid(owner) || !shape || (shape.kind !== 'polyhedron' && shape.kind !== 'round')) return false
+        if (!owner || !shape) return false
+        // A sphere given by its radius has its size handle straight above the center.
+        if (owner.type === 'sphere' && shape.kind === 'sphere') {
+          const along = closestOnLineToRay(shape.center, UP, ray)
+          if (along === null) return false
+          owner.radius = Math.max(MIN_HEIGHT, along)
+          releaseField(owner, 'radius')
+          return true
+        }
+        if (!isSolid(owner) || (shape.kind !== 'polyhedron' && shape.kind !== 'round')) return false
         const [base, axis] = shape.kind === 'polyhedron' ? [shape.heightStart, shape.normal] : [shape.baseCenter, shape.axis]
         const along = closestOnLineToRay(base, axis, ray)
         if (along === null) return false
         owner.height = Math.max(MIN_HEIGHT, along)
+        releaseField(owner, 'height')
         return true
       }
     }
@@ -167,6 +186,7 @@ export class SelectController {
     if (!constraint) {
       return { origin: point.position, directions: this.verticalPointId === point.id ? [UP] : [X_AXIS, Z_AXIS] }
     }
+    if (constraint.type === 'construct') return null
     const shape = this.deps.shapes().get(constraint.ownerId)
     if (!shape) return null
     if (constraint.type === 'on') {
@@ -174,6 +194,7 @@ export class SelectController {
       return part ? { origin: point.position, directions: part.tangents(constraint.params) } : null
     }
     if (constraint.type === 'height') {
+      if (shape.kind === 'sphere') return { origin: point.position, directions: [UP] }
       if (shape.kind === 'polyhedron') return { origin: point.position, directions: [shape.normal] }
       if (shape.kind === 'round') return { origin: point.position, directions: [shape.axis] }
     }

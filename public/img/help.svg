@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 500 670" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient gradientUnits="userSpaceOnUse" cy="13.127" cx="23.404" gradientTransform="matrix(9.477364, 10.273408, 9.367074, -10.407683, -215.77565, 326.421863)" r="14.286">
+    </radialGradient>
+  </defs>
+  <text style="fill: rgb(0, 0, 255); font-family: Arial, sans-serif; font-size: 35px; font-weight: 800; letter-spacing: 0px; text-anchor: middle; word-spacing: 0px; white-space: pre;" transform="matrix(15, 0, 0, 14, -2821, -4365)" x="205" y="350">?</text>
+</svg>

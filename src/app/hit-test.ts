@@ -1,6 +1,6 @@
 import type { ShapeMap } from '../document/dependencies'
 import { partsOf } from '../geometry/parts'
-import { isPoint, type GeometryObject, type ObjectId, type PointObject } from '../geometry/types'
+import { isInternalPoint, isPoint, type GeometryObject, type ObjectId, type PointObject } from '../geometry/types'
 import { clamp, distance, dot, intersectPlane, intersectTriangle, lerp, pointOnRay, sub, UP, ORIGIN, type Vec3 } from '../geometry/vec3'
 import type { Projector, ScreenPoint } from './camera-state'
 
@@ -23,7 +23,7 @@ export function nearestPoint(
   let best: PointObject | null = null
   let bestDistance = Infinity
   for (const object of objects) {
-    if (!isPoint(object) || !isVisible(object) || exclude.has(object.id)) continue
+    if (!isPoint(object) || !isVisible(object) || exclude.has(object.id) || isInternalPoint(object)) continue
     const screen = projector.toScreen(object.position)
     if (!screen) continue
     const pixels = Math.hypot(screen.x - spot.x, screen.y - spot.y)

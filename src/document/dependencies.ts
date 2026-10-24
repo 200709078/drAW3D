@@ -1,16 +1,23 @@
+import { derivedPosition, type DerivedSource } from '../geometry/derived'
+import { measure, type MeasureOutcome, type MeasureTarget } from '../geometry/measures'
 import { nearestPart, partsOf } from '../geometry/parts'
+import { regularShape } from '../geometry/polyhedra'
+import { sectionOf } from '../geometry/section'
 import {
-  angleShape, lineShape, maxUnfoldAngle, planeShape, polyhedronShape, roundShape, sphereShape, type Shape,
+  angleShape, lineShape, planeShape, polyhedronShape, roundShape, sphereShape, type Shape,
 } from '../geometry/solids'
+import { maxUnfoldAngle } from '../geometry/unfold'
 import {
-  isPoint, isSolid, references, type GeometryObject, type ObjectId, type PointConstraint, type PointObject,
+  isFigure, isPoint, isUnfoldable, references, type FigureObject, type GeometryObject, type MeasureObject, type ObjectId,
+  type PointConstraint,
 } from '../geometry/types'
-import { isFiniteVec, type Vec3 } from '../geometry/vec3'
+import { UP, addScaled, isFiniteVec, type Vec3 } from '../geometry/vec3'
+import { definitionNames, evaluateDefinitions } from './definitions'
 
 export type ShapeMap = ReadonlyMap<ObjectId, Shape>
 
-/** Shape of a non-point object from its points' positions; null when degenerate. */
-export function shapeOf(object: Exclude<GeometryObject, PointObject>, position: (id: ObjectId) => Vec3 | null): Shape | null {
+/** Shape of a figure from its points' positions; null when degenerate. */
+export function shapeOf(object: FigureObject, position: (id: ObjectId) => Vec3 | null): Shape | null {
   const points = object.points.map(position)
   if (points.some(point => point === null)) return null
   const [a, b, c] = points as Vec3[]
@@ -24,21 +31,30 @@ export function shapeOf(object: Exclude<GeometryObject, PointObject>, position: 
     case 'angle':
       return angleShape(a!, b!, c!)
     case 'sphere':
-      return sphereShape(a!, b!)
+      if (object.radius !== undefined) return object.radius > 0 ? { kind: 'sphere', center: a!, radius: object.radius } : null
+      return b ? sphereShape(a!, b) : null
     case 'prism':
     case 'pyramid':
-      return polyhedronShape(object.type, a!, b!, c!, object.sideCount, object.height)
+      return polyhedronShape(object.type, a!, b!, c!, object.sideCount, object.height, object.topRatio)
     case 'cylinder':
     case 'cone':
-      return roundShape(object.type, a!, b!, object.height)
+      return roundShape(object.type, a!, b!, object.height, object.topRatio)
+    case 'regular': {
+      const shape = regularShape(object.solid, a!, b!, c!)
+      if (shape && object.solid === 'cube') shape.net = object.net ?? 0
+      return shape
+    }
   }
 }
 
 /** Position of a solid's helper point; null when the solid has no such vertex now. */
 export function helperPosition(shape: Shape, constraint: PointConstraint): Vec3 | null {
-  if (constraint.type === 'on') return null
+  if (constraint.type === 'on' || constraint.type === 'construct') return null
+  // A sphere given by its radius has its size handle at the top.
+  if (shape.kind === 'sphere') return constraint.type === 'height' ? addScaled(shape.center, UP, shape.radius) : null
   if (shape.kind === 'polyhedron') {
     if (constraint.type === 'height') return shape.heightEnd
+    if (constraint.role === 'corner') return shape.vertices[constraint.index] ?? null
     if (constraint.role === 'base') return shape.base[constraint.index] ?? null
     if (constraint.role === 'top') return shape.top[constraint.index] ?? null
     if (constraint.role === 'center') return shape.baseCenter
@@ -56,12 +72,34 @@ function setValid(object: GeometryObject, valid: boolean): void {
   else object.geometryValid = false
 }
 
+/** What a measure reads: points by position, other objects by shape. */
+export function measureTargets(object: MeasureObject, objects: readonly GeometryObject[], shapes: ShapeMap): MeasureTarget[] | null {
+  const targets: MeasureTarget[] = []
+  for (const id of object.targets) {
+    const target = objects.find(candidate => candidate.id === id)
+    if (!target || target.geometryValid === false) return null
+    if (isPoint(target)) targets.push({ kind: 'point', position: target.position })
+    else {
+      const shape = shapes.get(id)
+      if (!shape) return null
+      targets.push(shape)
+    }
+  }
+  return targets
+}
+
+export function measureOf(object: MeasureObject, objects: readonly GeometryObject[], shapes: ShapeMap): MeasureOutcome {
+  const targets = measureTargets(object, objects, shapes)
+  return targets ? measure(object.measure, targets) : { ok: false, error: 'Ölçülen nesne tanımsız.' }
+}
+
 /**
- * Recompute every dependent position and shape in document order (creation order is
- * topological). Objects whose geometry becomes undefined keep their last values and are
- * marked invalid until it is defined again. Mutates the models in place.
+ * Evaluate definitions, then recompute every dependent position and shape in document
+ * order (creation order is topological). Objects whose geometry becomes undefined keep
+ * their last values and are marked invalid until it is defined again. Mutates the models.
  */
 export function resolveDocument(objects: readonly GeometryObject[]): ShapeMap {
+  const failed = evaluateDefinitions(objects)
   const byId = new Map(objects.map(object => [object.id, object]))
   const shapes = new Map<ObjectId, Shape>()
   const position = (id: ObjectId): Vec3 | null => {
@@ -69,23 +107,55 @@ export function resolveDocument(objects: readonly GeometryObject[]): ShapeMap {
     return isPoint(point) && point.geometryValid !== false ? point.position : null
   }
   for (const object of objects) {
-    if (!isPoint(object)) {
-      const shape = shapeOf(object, position)
+    if (object.type === 'parameter') {
+      setValid(object, !failed.has(object.id))
+      continue
+    }
+    if (object.type === 'measure') {
+      setValid(object, measureOf(object, objects, shapes).ok)
+      continue
+    }
+    if (object.type === 'section') {
+      const [solid, plane] = object.targets.map(id => shapes.get(id))
+      const section = solid && plane?.kind === 'plane' && (solid.kind === 'polyhedron' || solid.kind === 'round' || solid.kind === 'sphere')
+        ? sectionOf(solid, plane) : null
+      setValid(object, section !== null)
+      if (section) shapes.set(object.id, section)
+      continue
+    }
+    if (isFigure(object)) {
+      const shape = failed.has(object.id) ? null : shapeOf(object, position)
       setValid(object, shape !== null)
       if (!shape) continue
       shapes.set(object.id, shape)
-      if (isSolid(object) && (shape.kind === 'polyhedron' || shape.kind === 'round')) {
+      if (isUnfoldable(object) && (shape.kind === 'polyhedron' || shape.kind === 'round')) {
         object.unfold = Math.min(object.unfold, maxUnfoldAngle(shape))
       }
       continue
     }
     const constraint = object.constraint
     if (!constraint) {
-      setValid(object, isFiniteVec(object.position))
+      setValid(object, !failed.has(object.id) && isFiniteVec(object.position))
+      continue
+    }
+    let next: Vec3 | null = null
+    if (constraint.type === 'construct') {
+      // Points by position (when defined), other objects by shape (only defined ones have one).
+      const sources = constraint.sources.map((id): DerivedSource | null => {
+        const source = byId.get(id)
+        if (!isPoint(source)) return shapes.get(id) ?? null
+        return source.geometryValid === false ? null : { kind: 'point', position: source.position }
+      })
+      next = sources.every(source => source !== null) ? derivedPosition(constraint.rule, sources as DerivedSource[], constraint.index) : null
+      if (next && isFiniteVec(next)) {
+        object.position = next
+        setValid(object, true)
+      } else {
+        setValid(object, false)
+      }
       continue
     }
     const shape = shapes.get(constraint.ownerId)
-    let next: Vec3 | null = null
     if (shape && constraint.type === 'on') {
       const parts = partsOf(shape)
       let part = parts[constraint.part]
@@ -112,15 +182,54 @@ export function resolveDocument(objects: readonly GeometryObject[]): ShapeMap {
   return shapes
 }
 
-/** Objects that read their geometry from any of `ids`, transitively (not including `ids`). */
+/** IDs an object depends on: the objects it is built from and the parameters its definition names. */
+export function dependencyIds(object: GeometryObject, objects: readonly GeometryObject[]): ObjectId[] {
+  const ids = references(object)
+  const names = definitionNames(object)
+  if (names.size) {
+    for (const candidate of objects) if (candidate.type === 'parameter' && names.has(candidate.name)) ids.push(candidate.id)
+  }
+  return ids
+}
+
+/**
+ * Document order with every object after what it depends on, keeping the current order
+ * where possible. Needed after a redefinition makes an object use a later one.
+ */
+export function dependencyOrder(objects: readonly GeometryObject[]): GeometryObject[] {
+  const byId = new Map(objects.map(object => [object.id, object]))
+  const placed = new Set<ObjectId>()
+  const visiting = new Set<ObjectId>()
+  const ordered: GeometryObject[] = []
+  const place = (object: GeometryObject) => {
+    if (placed.has(object.id) || visiting.has(object.id)) return
+    visiting.add(object.id)
+    for (const id of dependencyIds(object, objects)) {
+      const dependency = byId.get(id)
+      if (dependency) place(dependency)
+    }
+    visiting.delete(object.id)
+    placed.add(object.id)
+    ordered.push(object)
+  }
+  for (const object of objects) place(object)
+  return ordered
+}
+
+/** Objects built on any of `ids` (geometry or parameter names), transitively, not including `ids`. */
 export function collectDependents(objects: readonly GeometryObject[], ids: Iterable<ObjectId>): Set<ObjectId> {
   const removed = new Set(ids)
   const dependents = new Set<ObjectId>()
-  for (const object of objects) {
-    if (removed.has(object.id)) continue
-    if (references(object).some(id => removed.has(id))) {
-      removed.add(object.id)
-      dependents.add(object.id)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const object of objects) {
+      if (removed.has(object.id)) continue
+      if (dependencyIds(object, objects).some(id => removed.has(id))) {
+        removed.add(object.id)
+        dependents.add(object.id)
+        changed = true
+      }
     }
   }
   return dependents
@@ -164,7 +273,7 @@ export function planDeletion(objects: readonly GeometryObject[], ids: Iterable<O
   const removed = new Set(ids)
   const usersOf = new Map<ObjectId, ObjectId[]>()
   for (const object of objects) {
-    for (const id of references(object)) usersOf.set(id, [...usersOf.get(id) ?? [], object.id])
+    for (const id of dependencyIds(object, objects)) usersOf.set(id, [...usersOf.get(id) ?? [], object.id])
   }
   let changed = true
   while (changed) {
@@ -172,7 +281,7 @@ export function planDeletion(objects: readonly GeometryObject[], ids: Iterable<O
     for (const object of objects) {
       if (removed.has(object.id)) continue
       const owned = object.ownerId !== undefined && removed.has(object.ownerId)
-      const dependent = references(object).some(id => removed.has(id))
+      const dependent = dependencyIds(object, objects).some(id => removed.has(id))
       const remove = dependent || (owned && (!isSoftHelper(object)
         || (usersOf.get(object.id) ?? []).every(user => removed.has(user))))
       if (remove) {

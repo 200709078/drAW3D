@@ -301,8 +301,9 @@ const partCache = new WeakMap<Shape, Part[]>()
  * - line: the drawn line; plane: the square; sphere: the surface;
  * - angle: arm to A, arm to C, arc;
  * - prism/pyramid: every edge (shape.edges order), then every face (shape.faces order);
- * - cylinder: base circle, top circle, side, base disk, top disk;
- * - cone: base circle, side, base disk.
+ * - cylinder and cut cone: base circle, top circle, side, base disk, top disk;
+ * - cone: base circle, side, base disk;
+ * - section: the polygon, then its edges.
  */
 export function partsOf(shape: Shape): Part[] {
   const cached = partCache.get(shape)
@@ -315,8 +316,9 @@ export function partsOf(shape: Shape): Part[] {
 function createParts(shape: Shape): Part[] {
   switch (shape.kind) {
     case 'line': {
+      if (shape.extent === 'segment') return [segmentPart(shape.a, shape.b)]
       const d = length(sub(shape.b, shape.a))
-      const startT = dot(sub(shape.start, shape.a), shape.direction) / d
+      const startT = shape.extent === 'ray' ? 0 : dot(sub(shape.start, shape.a), shape.direction) / d
       const endT = dot(sub(shape.end, shape.a), shape.direction) / d
       return [segmentPart(shape.a, shape.b, [startT, endT])]
     }
@@ -335,15 +337,20 @@ function createParts(shape: Shape): Part[] {
         ...shape.edges.map(([from, to]) => segmentPart(shape.vertices[from]!, shape.vertices[to]!)),
         ...shape.faces.map(face => polygonPart(face.map(index => shape.vertices[index]!))),
       ]
+    case 'section':
+      return [
+        polygonPart(shape.polygon),
+        ...shape.polygon.map((point, index) => segmentPart(point, shape.polygon[(index + 1) % shape.polygon.length]!)),
+      ]
     case 'round': {
-      const { baseCenter, axis, u, v, radius, height, top } = shape
-      if (shape.solid === 'cylinder') {
+      const { baseCenter, axis, u, v, radius, height, top, topRadius } = shape
+      if (topRadius > 0) {
         return [
           circlePart(baseCenter, u, v, radius),
-          circlePart(top, u, v, radius),
-          roundSidePart(baseCenter, axis, u, v, radius, height, radius),
+          circlePart(top, u, v, topRadius),
+          roundSidePart(baseCenter, axis, u, v, radius, height, topRadius),
           diskPart(baseCenter, u, v, radius),
-          diskPart(top, u, v, radius),
+          diskPart(top, u, v, topRadius),
         ]
       }
       return [

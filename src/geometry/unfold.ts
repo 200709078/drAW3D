@@ -1,6 +1,8 @@
-import { circlePoint, maxUnfoldAngle, type PolyhedronShape, type RoundShape, type SolidShape } from './solids'
+import { polyhedronMaxAngle, unfoldPolyhedronNet } from './nets'
+import { circlePoint, type PolyhedronShape, type RoundShape, type SolidShape } from './solids'
 import {
-  EPSILON, add, addScaled, clamp, cross, dot, normalize, rotateAround, rotateVector, scale, sub, toRadians, type Vec3,
+  EPSILON, add, addScaled, atan2Degrees, clamp, cross, dot, normalize, rotateAround, rotateVector, scale, sub, toDegrees,
+  toRadians, type Vec3,
 } from './vec3'
 
 /**
@@ -10,6 +12,19 @@ import {
 export interface Net {
   faces: Vec3[][]
   outlines: Vec3[][]
+  /** Polyhedra: the solid's vertex index of every face corner, and the edges folded along. */
+  faceVertices?: number[][]
+  folds?: [number, number][]
+  /** Round solids: the cut edge of the side that is glued to its other end. */
+  seam?: [Vec3, Vec3]
+}
+
+/** Largest opening angle in degrees: where every face reaches the base plane. */
+export function maxUnfoldAngle(shape: SolidShape): number {
+  if (shape.kind === 'polyhedron') return toDegrees(polyhedronMaxAngle(shape))
+  if (shape.solid === 'cylinder') return 90
+  // The slant line turns from its own angle with the base down onto the base plane.
+  return 180 - atan2Degrees(shape.height, shape.radius - shape.topRadius)
 }
 
 const ROUND_SEGMENTS = 64
@@ -23,37 +38,16 @@ export function unfoldSolid(shape: SolidShape, angleDegrees: number): Net {
   return shape.solid === 'cylinder' ? unfoldCylinder(shape, progress) : unfoldCone(shape, progress)
 }
 
-/** Sign that turns a face hinged on the base edge from→to away from the base center. */
-function outwardSign(from: Vec3, to: Vec3, baseCenter: Vec3, up: Vec3): number {
-  const axis = normalize(sub(to, from))!
-  const outward = sub(scale(add(from, to), 0.5), baseCenter)
-  return Math.sign(dot(cross(axis, up), outward)) || 1
-}
-
+/**
+ * Faces open along the net's tree (`geometry/nets.ts`): each turns about the edge it shares
+ * with its parent by the angle, at most until it lies in the parent's plane.
+ */
 function unfoldPolyhedron(shape: PolyhedronShape, angle: number): Net {
-  const { base, normal, baseCenter } = shape
-  const n = base.length
-  const faces: Vec3[][] = [base]
-  const up = scale(normal, shape.height)
-  for (let index = 0; index < n; index++) {
-    const from = base[index]!
-    const to = base[(index + 1) % n]!
-    const axis = normalize(sub(to, from))!
-    const turn = angle * outwardSign(from, to, baseCenter, up)
-    const open = (vertex: Vec3) => rotateAround(vertex, from, axis, turn)
-    if (shape.solid === 'pyramid') {
-      faces.push([from, to, open(shape.apex!)])
-      continue
-    }
-    const side = [from, to, open(shape.top[(index + 1) % n]!), open(shape.top[index]!)]
-    faces.push(side)
-    // The top hangs on the last side face and opens once more around that face's top edge.
-    if (index === n - 1) {
-      const hinge = side[3]!
-      faces.push(shape.top.map(vertex => rotateAround(open(vertex), hinge, axis, turn)))
-    }
+  const net = unfoldPolyhedronNet(shape, angle)
+  return {
+    faces: net.faces, outlines: net.faces.map(face => [...face, face[0]!]),
+    faceVertices: net.faceVertices, folds: net.folds,
   }
-  return { faces, outlines: faces.map(face => [...face, face[0]!]) }
 }
 
 function circle(center: Vec3, u: Vec3, v: Vec3, radius: number): Vec3[] {
@@ -114,39 +108,79 @@ function unfoldCylinder(shape: RoundShape, progress: number): Net {
     grid[0]!,
     grid[ROUND_SEGMENTS]!,
   ]
-  return { faces, outlines }
+  return { faces, outlines, seam: [grid[0]![0]!, grid[0]![SIDE_ROWS]!] }
 }
 
 /**
  * The side opens around its slant line through the radius point: the cone's half angle widens
- * to 90° (a flat sector) while that slant line turns down onto the base plane.
+ * to 90° (a flat sector) while that slant line turns down onto the base plane. A cut cone is
+ * the band of the full cone between its two circles; its top disk hangs on the inner arc.
  */
 function unfoldCone(shape: RoundShape, progress: number): Net {
-  const { baseCenter, u, v, radius, height, rim } = shape
-  const slant = Math.hypot(radius, height)
+  const { baseCenter, u, v, radius, height, rim, topRadius } = shape
+  // The full cone (for a cut cone, extended to its apex).
+  const fullHeight = topRadius > 0 ? height * radius / (radius - topRadius) : height
+  const fullApex = addScaled(baseCenter, shape.axis, fullHeight)
+  const slant = Math.hypot(radius, fullHeight)
+  const inner = slant * topRadius / radius
   const halfAngle = Math.asin(radius / slant)
   const sector = 2 * Math.PI * radius / slant
-  const generator0 = normalize(sub(rim, shape.top))!
-  const turn = progress * (Math.PI / 2 + halfAngle)
-  const sinBeta = Math.sin(halfAngle) + progress * (1 - Math.sin(halfAngle))
-  const beta = Math.asin(clamp(sinBeta, 0, 1))
-  const generator = rotateVector(generator0, v, turn)
-  const coneAxis = rotateVector(generator0, v, turn + beta)
-  const apex = addScaled(rim, generator, -slant)
-  const radial = normalize(addScaled(generator, coneAxis, -Math.cos(beta))) ?? u
-  const tangent = cross(radial, coneAxis)
-  const sidePoint = (distance: number, angle: number) => {
-    const around = angle / sinBeta
-    const direction = add(scale(coneAxis, Math.cos(beta)),
-      scale(add(scale(radial, Math.cos(around)), scale(tangent, Math.sin(around))), sinBeta))
-    return addScaled(apex, direction, distance)
+  const generator0 = normalize(sub(rim, fullApex))!
+  const deformed = (p: number) => {
+    const turn = p * (Math.PI / 2 + halfAngle)
+    const sinBeta = Math.sin(halfAngle) + p * (1 - Math.sin(halfAngle))
+    const beta = Math.asin(clamp(sinBeta, 0, 1))
+    const generator = rotateVector(generator0, v, turn)
+    const coneAxis = rotateVector(generator0, v, turn + beta)
+    const apex = addScaled(rim, generator, -slant)
+    const radial = normalize(addScaled(generator, coneAxis, -Math.cos(beta))) ?? u
+    const tangent = cross(radial, coneAxis)
+    const point = (distance: number, angle: number) => {
+      const around = angle / sinBeta
+      const direction = add(scale(coneAxis, Math.cos(beta)),
+        scale(add(scale(radial, Math.cos(around)), scale(tangent, Math.sin(around))), sinBeta))
+      return addScaled(apex, direction, distance)
+    }
+    return { apex, point, tangent }
   }
-  const arc: Vec3[] = []
-  for (let index = 0; index <= ROUND_SEGMENTS; index++) arc.push(sidePoint(slant, -sector / 2 + sector * index / ROUND_SEGMENTS))
+  const now = deformed(progress)
+  const arcAt = (distance: number) => {
+    const arc: Vec3[] = []
+    for (let index = 0; index <= ROUND_SEGMENTS; index++) arc.push(now.point(distance, -sector / 2 + sector * index / ROUND_SEGMENTS))
+    return arc
+  }
+  const outer = arcAt(slant)
   const faces = disk(baseCenter, u, v, radius)
-  for (let index = 0; index < ROUND_SEGMENTS; index++) faces.push([apex, arc[index]!, arc[index + 1]!])
+  if (topRadius <= 0) {
+    for (let index = 0; index < ROUND_SEGMENTS; index++) faces.push([now.apex, outer[index]!, outer[index + 1]!])
+    return {
+      faces,
+      outlines: [circle(baseCenter, u, v, radius), outer, [outer[0]!, now.apex, outer[ROUND_SEGMENTS]!]],
+      seam: [outer[0]!, now.apex],
+    }
+  }
+  const innerArc = arcAt(inner)
+  for (let index = 0; index < ROUND_SEGMENTS; index++) faces.push([innerArc[index]!, outer[index]!, outer[index + 1]!, innerArc[index + 1]!])
+  // The top disk turns about the inner arc's middle from its closed place into the band's plane.
+  const frameAt = (p: number) => {
+    const state = deformed(p)
+    const contact = state.point(inner, 0)
+    const towardApex = normalize(sub(state.apex, contact))!
+    const outward = normalize(cross(towardApex, state.tangent))!
+    return { contact, towardApex, outward, tangent: state.tangent }
+  }
+  const closed = frameAt(0)
+  const toCenter = normalize(sub(shape.top, closed.contact))!
+  const startAngle = Math.atan2(dot(toCenter, scale(closed.outward, -1)), dot(toCenter, closed.towardApex))
+  const open = frameAt(progress)
+  const fold = startAngle * (1 - progress)
+  const direction = add(scale(open.towardApex, Math.cos(fold)), scale(open.outward, -Math.sin(fold)))
+  const capCenter = addScaled(open.contact, direction, topRadius)
+  faces.push(...disk(capCenter, scale(direction, -1), open.tangent, topRadius))
   return {
     faces,
-    outlines: [circle(baseCenter, u, v, radius), arc, [arc[0]!, apex, arc[ROUND_SEGMENTS]!]],
+    outlines: [circle(baseCenter, u, v, radius), outer, innerArc, [outer[0]!, innerArc[0]!], [outer[ROUND_SEGMENTS]!, innerArc[ROUND_SEGMENTS]!],
+      circle(capCenter, scale(direction, -1), open.tangent, topRadius)],
+    seam: [outer[0]!, innerArc[0]!],
   }
 }

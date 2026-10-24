@@ -1,13 +1,16 @@
 import * as THREE from 'three'
-import type { ShapeMap } from '../document/dependencies'
+import { formatNumber } from '../commands/describe'
+import { measureOf, type ShapeMap } from '../document/dependencies'
 import { circlePoint, type Shape } from '../geometry/solids'
-import { isPoint, type GeometryObject, type ObjectId } from '../geometry/types'
-import { toDegrees, type Vec3 } from '../geometry/vec3'
+import { isInternalPoint, isPoint, type GeometryObject, type ObjectId } from '../geometry/types'
+import { UP, add, addScaled, centroid, scale, toDegrees, type Vec3 } from '../geometry/vec3'
 import { ArrowView } from './arrows'
+import type { Viewer } from '../geometry/visibility'
 import type { LabelLayer } from './labels'
+import { labelShown, type ViewOptions } from './view-options'
 import type { MaterialCache } from './materials'
 import {
-  AngleView, PlaneView, PointView, PolyhedronView, RoundView, SELECTED_COLOR, SphereView, TubeView,
+  AngleView, MeasureView, PlaneView, PointView, PolyhedronView, RoundView, SELECTED_COLOR, SectionView, SphereView, TubeView,
   type ViewStyle,
 } from './views'
 
@@ -25,6 +28,7 @@ export interface SceneState {
   coarse: boolean
   /** The selected point's drag directions. */
   arrows: { origin: Vec3; directions: Vec3[] } | null
+  view: ViewOptions
 }
 
 /** What a construction tool shows before its last click. */
@@ -35,19 +39,22 @@ export interface Preview {
   shape: Shape | null
 }
 
-type View = PointView | TubeView | PlaneView | AngleView | SphereView | PolyhedronView | RoundView
+type View = PointView | TubeView | PlaneView | AngleView | SphereView | PolyhedronView | RoundView | MeasureView | SectionView
 
-function createView(materials: MaterialCache, object: GeometryObject | Shape): View {
-  if ('kind' in object) {
-    switch (object.kind) {
-      case 'line': return new TubeView(materials)
-      case 'plane': return new PlaneView(materials)
-      case 'angle': return new AngleView(materials)
-      case 'sphere': return new SphereView(materials)
-      case 'polyhedron': return new PolyhedronView(materials)
-      case 'round': return new RoundView(materials, object.solid)
-    }
+function createShapeView(materials: MaterialCache, shape: Shape): View {
+  switch (shape.kind) {
+    case 'line': return new TubeView(materials)
+    case 'plane': return new PlaneView(materials)
+    case 'angle': return new AngleView(materials)
+    case 'sphere': return new SphereView(materials)
+    case 'polyhedron': return new PolyhedronView(materials)
+    case 'round': return new RoundView(materials, shape.solid)
+    case 'section': return new SectionView(materials)
   }
+}
+
+/** Objects without a picture (parameters) have no view. */
+function createObjectView(materials: MaterialCache, object: GeometryObject): View | null {
   switch (object.type) {
     case 'point': return new PointView(materials)
     case 'line':
@@ -60,6 +67,10 @@ function createView(materials: MaterialCache, object: GeometryObject | Shape): V
     case 'pyramid': return new PolyhedronView(materials)
     case 'cylinder':
     case 'cone': return new RoundView(materials, object.type)
+    case 'regular': return new PolyhedronView(materials)
+    case 'section': return new SectionView(materials)
+    case 'measure': return new MeasureView(materials)
+    case 'parameter': return null
   }
 }
 
@@ -82,6 +93,9 @@ function drawShape(view: View, shape: Shape, style: ViewStyle, unfold: number): 
       return
     case 'round':
       (view as RoundView).update(shape, style, unfold)
+      return
+    case 'section':
+      (view as SectionView).update(shape, style)
   }
 }
 
@@ -90,16 +104,31 @@ export function angleText(radians: number): string {
   return `${Math.round(toDegrees(radians))}°`
 }
 
+/** Where an object's name is written. */
+function labelAnchor(shape: Shape): Vec3 {
+  switch (shape.kind) {
+    case 'line': return scale(add(shape.a, shape.b), 0.5)
+    case 'plane': return addScaled(shape.center, shape.u, shape.size / 2 - 1)
+    case 'angle': return shape.vertex
+    case 'sphere': return addScaled(shape.center, UP, shape.radius * 1.1)
+    case 'polyhedron': return addScaled(centroid(shape.vertices), shape.normal, shape.height * 0.6)
+    case 'round': return addScaled(shape.baseCenter, shape.axis, shape.height * 1.1)
+    case 'section': return shape.center
+  }
+}
+
 /**
  * Keeps the Three.js scene in step with the document: one view per object ID, created on
  * first sight, updated in place and disposed when the object leaves the document.
  */
 export class SceneSync {
-  private views = new Map<ObjectId, { type: string; view: View }>()
+  private views = new Map<ObjectId, { type: string; view: View | null }>()
   private group = new THREE.Group()
   private preview = new THREE.Group()
   private previewView: { kind: string; view: View } | null = null
   private cursor: THREE.Mesh
+  private hiddenEdges = true
+  private viewer: Viewer | null = null
   readonly arrows: ArrowView
 
   constructor(scene: THREE.Scene, private materials: MaterialCache, private labels: LabelLayer) {
@@ -111,9 +140,17 @@ export class SceneSync {
   }
 
   update(state: SceneState): void {
+    if (this.hiddenEdges !== state.view.hiddenEdges) {
+      this.hiddenEdges = state.view.hiddenEdges
+      this.setViewer(this.viewer)
+    }
     const seen = new Set<ObjectId>()
     const labels = new Set<string>()
     const byId = new Map(state.objects.map(object => [object.id, object]))
+    const label = (key: string, text: string, color: string, anchor: Vec3) => {
+      labels.add(key)
+      this.labels.set(key, text, color, anchor)
+    }
     const isSelected = (object: GeometryObject): boolean => {
       if (state.selectedId === null) return false
       let current: GeometryObject | undefined = object
@@ -133,29 +170,67 @@ export class SceneSync {
         entry = undefined
       }
       if (!entry) {
-        entry = { type: object.type, view: createView(this.materials, object) }
+        const view = createObjectView(this.materials, object)
+        entry = { type: object.type, view }
         this.views.set(object.id, entry)
-        this.group.add(entry.view.root)
+        if (view) this.group.add(view.root)
       }
+      const view = entry.view
+      if (!view) continue
       const shape = state.shapes.get(object.id)
-      const visible = !object.hidden && object.geometryValid !== false && (isPoint(object) || shape !== undefined)
-      entry.view.root.visible = visible
+      const drawable = (isPoint(object) && !isInternalPoint(object)) || object.type === 'measure' || shape !== undefined
+      const visible = !object.hidden && object.geometryValid !== false && drawable
+      view.root.visible = visible
       if (!visible) continue
       const selected = isSelected(object)
+      const color = selected ? SELECTED_COLOR : object.color
       if (isPoint(object)) {
         const base = state.coarse ? COARSE_POINT_RADIUS : POINT_RADIUS
-        const radius = object.constraint?.type === 'on' ? base * 1.1 : base
-        ;(entry.view as PointView).update(object.position, selected ? SELECTED_COLOR : object.color, radius)
+        const radius = (object.constraint?.type === 'on' ? base * 1.1 : base) * (object.size ?? 1)
+        ;(view as PointView).update(object.position, color, radius)
+        if (labelShown(object, state.view.labels)) {
+          const { x, y, z } = object.position
+          const text = state.view.coordinates
+            ? `${object.name}(${formatNumber(x)}, ${formatNumber(y)}, ${formatNumber(z)})` : object.name
+          label(`name:${object.id}`, text, color, addScaled(object.position, UP, radius + 0.35))
+        }
         continue
       }
-      const unfold = 'unfold' in object ? object.unfold : 0
-      drawShape(entry.view, shape!, { color: object.color, selected }, unfold)
-      if (shape!.kind === 'angle') {
-        const key = `angle:${object.id}`
-        labels.add(key)
-        this.labels.set(key, angleText(shape!.radians), selected ? SELECTED_COLOR : object.color,
-          circlePoint(shape!.vertex, shape!.u, shape!.v, shape!.arcRadius + 0.7, shape!.radians / 2))
+      if (object.type === 'measure') {
+        const outcome = measureOf(object, state.objects, state.shapes)
+        const result = outcome.ok ? outcome.result : null
+        ;(view as MeasureView).update(result?.from, result?.to, { color: object.color, selected })
+        if (result) {
+          const unit = result.unit === 'angle' ? '°' : ''
+          label(`measure:${object.id}`, `${object.name} = ${formatNumber(result.value)}${unit}`, color, result.anchor)
+        }
+        continue
       }
+      // A helper segment is an edge of its owner (a solid's base edge, a radius) and looks like one.
+      const owner = object.ownerId === undefined ? undefined : byId.get(object.ownerId)
+      if (owner && owner.edgesHidden && !selected) {
+        view.root.visible = false
+        continue
+      }
+      const look = owner ?? object
+      const style: ViewStyle = {
+        color: object.color, selected,
+        ...(look.size !== undefined && !owner ? { size: look.size } : {}),
+        ...(look.lineStyle !== undefined ? { lineStyle: look.lineStyle } : {}),
+        ...(object.opacity !== undefined ? { opacity: object.opacity } : {}),
+        faces: !object.facesHidden,
+        edges: !object.edgesHidden,
+      }
+      const unfold = 'unfold' in object ? object.unfold : 0
+      drawShape(view, shape!, style, unfold)
+      if (shape!.kind === 'angle') {
+        const text = labelShown(object, state.view.labels) ? `${object.name} = ${angleText(shape!.radians)}` : angleText(shape!.radians)
+        label(`angle:${object.id}`, text, color,
+          circlePoint(shape!.vertex, shape!.u, shape!.v, shape!.arcRadius + 0.7, shape!.radians / 2))
+      } else if (labelShown(object, state.view.labels)) {
+        label(`name:${object.id}`, object.name, color, labelAnchor(shape!))
+      }
+      if (this.hiddenEdges && 'setViewer' in view) view.setViewer(this.viewer)
     }
     for (const id of [...this.views.keys()]) {
       if (!seen.has(id)) this.disposeView(id)
@@ -163,6 +238,15 @@ export class SceneSync {
     this.labels.retain(labels)
     if (state.arrows) this.arrows.update(state.arrows.origin, state.arrows.directions, SELECTED_COLOR)
     else this.arrows.update(null, [], SELECTED_COLOR)
+  }
+
+  /** Where the viewer is now; solids split their edges into seen and hidden ones. */
+  setViewer(viewer: Viewer | null): void {
+    this.viewer = viewer
+    const shown = this.hiddenEdges ? viewer : null
+    for (const { view } of this.views.values()) {
+      if (view && 'setViewer' in view) view.setViewer(shown)
+    }
   }
 
   setPreview(preview: Preview | null): void {
@@ -179,7 +263,7 @@ export class SceneSync {
         this.preview.remove(this.previewView.view.root)
         this.previewView.view.dispose()
       }
-      this.previewView = { kind, view: createView(this.materials, shape) }
+      this.previewView = { kind, view: createShapeView(this.materials, shape) }
       this.preview.add(this.previewView.view.root)
     }
     this.previewView.view.root.visible = true
@@ -190,9 +274,10 @@ export class SceneSync {
   private disposeView(id: ObjectId): void {
     const entry = this.views.get(id)
     if (!entry) return
-    this.group.remove(entry.view.root)
-    entry.view.dispose()
+    if (entry.view) {
+      this.group.remove(entry.view.root)
+      entry.view.dispose()
+    }
     this.views.delete(id)
   }
 }
-

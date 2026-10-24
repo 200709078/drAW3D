@@ -21,6 +21,9 @@
 			<button id="currentTool" class="toolbar-button current-tool" type="button" title="Araçlar"></button>
 			<div id="toolGroups" class="tool-groups"></div>
 			<div class="toolbar-actions">
+				<button type="button" id="fileMenuButton" class="toolbar-button" title="Dosya">
+					<img src="./img/file.svg" width="26" height="26" alt="">
+				</button>
 				<button type="button" id="undo" class="toolbar-button" title="Geri Al" disabled>
 					<img src="./img/undo.svg" width="26" height="26" alt="">
 				</button>
@@ -42,15 +45,38 @@
 				<button type="button" id="standardView" class="toolbar-button" title="Standart Görünüm">
 					<img src="./img/default.svg" width="26" height="26" alt="">
 				</button>
+				<button type="button" id="viewMenuButton" class="toolbar-button" title="Görünüm">
+					<img src="./img/view.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="helpMenuButton" class="toolbar-button" title="Yardım">
+					<img id="btnimgHelpMenu" src="./img/help.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="btnCalc" class="toolbar-button" title="Paneli Gizle">
+					<img id="btnimgCalc" src="./img/arrow.svg" width="26" height="26" alt="">
+				</button>
 			</div>
 		</div>
 		<div id="viewport">
 			<canvas id="scene"></canvas>
 			<div id="sceneLabels" class="scene-labels" aria-hidden="true"></div>
 		</div>
-		<!-- Dar ekranda araçlar alttan açılan bir panelde gruplanır. -->
-		<div id="toolsSheet" class="tools-sheet" hidden>
-			<div id="toolsPanel" class="tools-panel"></div>
+		<div class="rightWrapper" id="rightWrapper">
+			<div class="reSizer"></div>
+			<!-- Dar ekranda alt panel nesneler ile araçlar arasında geçiş yapar. -->
+			<div class="panel-tabs" role="tablist" aria-label="Panel">
+				<button type="button" id="tabAlgebra" class="panel-tab" role="tab" aria-selected="true" aria-controls="scrollWrapper">Cebir</button>
+				<button type="button" id="tabTools" class="panel-tab" role="tab" aria-selected="false" aria-controls="toolsPanel">Araçlar</button>
+			</div>
+			<div id="toolsPanel" class="tools-panel" role="tabpanel" hidden></div>
+			<div id="scrollWrapper">
+				<div class="expr-block-giris">
+					<input id="giris" placeholder="Giriş" title="Giriş" value="" autocomplete="off" spellcheck="false">
+					<button type="button" id="keyboardToggle" class="keyboard-toggle" title="Matematik klavyesi" aria-pressed="false"
+						aria-controls="mathKeyboard"><img src="./img/keyboard.svg" width="20" height="20" alt=""></button>
+				</div>
+				<hr>
+				<div id="objectsContainer"></div>
+			</div>
 		</div>
 		<div id="objectControls" class="object-controls" hidden>
 			<label id="sideControl" class="object-control" hidden>
@@ -58,7 +84,7 @@
 				<input id="sideSlider" type="range" min="3" max="20" value="4" step="1">
 			</label>
 			<label id="unfoldControl" class="object-control" hidden>
-				<span>Açınım: <output id="unfoldValue">0</output>°</span>
+				<span>Açınım: <output id="unfoldValue">0</output>° <button type="button" id="unfoldPlay" class="unfold-play" title="Oynat">▶</button></span>
 				<input id="unfoldSlider" type="range" min="0" max="90" value="0" step="1">
 			</label>
 		</div>
@@ -66,6 +92,19 @@
 	<div id="snackbar" class="tool-toast" role="status" aria-live="polite">
 		<strong id="snackTitle" class="tool-toast-title"></strong>
 		<span id="snackContent" class="tool-toast-message"></span>
+	</div>
+	<!-- Yardım Penceresi -->
+	<div class="help-popup" id="help-popup">
+		<div class="help-content">
+			<div id="help-header">
+				<h2>drAW3D Yardım</h2>
+				<button class="help-close" type="button" title="Kapat">&times;</button>
+			</div>
+			<div class="help-section">
+				<h3>Giriş Alanı Komutları</h3>
+				<!-- Konular ve örnekler src/commands/language.ts tablosundan üretilir. -->
+			</div>
+		</div>
 	</div>
 	<script type="module" src="/src/main.ts"></script>
 </body>

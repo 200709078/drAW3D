@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 import {
-  angleShape, arePointsCollinear, initialSidePoint, lineShape, maxUnfoldAngle, planeShape, polygonArea, polyhedronShape,
+  angleShape, arePointsCollinear, initialSidePoint, lineShape, planeShape, polygonArea, polyhedronShape,
   regularPolygonFromEdge, roundAxis, roundShape, solidVolume, sphereShape, surfaceArea,
 } from '../src/geometry/solids'
+import { maxUnfoldAngle } from '../src/geometry/unfold'
 import { centroid, cross, distance, dot, length, normalize, sub, toDegrees, vec, type Vec3 } from '../src/geometry/vec3'
 
 function expectClose(actual: Vec3, expected: Vec3, digits = 9): void {

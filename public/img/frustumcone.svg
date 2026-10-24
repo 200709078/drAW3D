@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kesik Koni">
+  <path d="M20 18 8 50a24 7 0 0 0 48 0L44 18z" fill="#d6b48a" stroke="#6b4423" stroke-width="2.5" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="18" rx="12" ry="4" fill="#ecd5b3" stroke="#6b4423" stroke-width="2.5"/>
+</svg>

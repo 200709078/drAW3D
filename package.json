@@ -33,6 +33,7 @@
     "dist:win": "npm run build && electron-builder --win nsis"
   },
   "dependencies": {
+    "mathjs": "15.2.0",
     "three": "0.184.0"
   },
   "devDependencies": {
@@ -59,7 +60,10 @@
     ],
     "asar": true,
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "build/icons",
       "category": "Education;Math",
       "executableName": "draw3d",

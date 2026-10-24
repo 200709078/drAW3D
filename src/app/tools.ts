@@ -1,13 +1,18 @@
 import {
-  POINTS_NEEDED, acceptsPoint, adoptCreatedPoints, buildConstruction, createContext, createPoint, type ConstructionKind,
+  DEFAULT_TOP_RATIO, POINTS_NEEDED, acceptsPoint, adoptCreatedPoints, buildConstruction, createContext, createPoint,
+  type ConstructionKind,
 } from '../document/constructions'
+import { regularShape } from '../geometry/polyhedra'
 import { resolveDocument, type ShapeMap } from '../document/dependencies'
 import type { GeometryDocument } from '../document/geometry-document'
 import {
   angleShape, initialSidePoint, lineShape, planeShape, polyhedronShape, roundShape, sphereShape, type Shape,
 } from '../geometry/solids'
-import { DEFAULT_SIDES, isPoint, type ObjectId, type PointObject } from '../geometry/types'
-import { distance, type Vec3 } from '../geometry/vec3'
+import { prepareCommand } from '../commands/prepare'
+import type { Command } from '../commands/types'
+import { selectionTarget } from '../document/editing'
+import { DEFAULT_SIDES, isPoint, isUnfoldable, type GeometryObject, type ObjectId, type PointObject } from '../geometry/types'
+import { SAME_POINT, distance, type Vec3 } from '../geometry/vec3'
 import type { Preview } from '../rendering/scene-sync'
 import type { ToolAction } from '../ui/tool-registry'
 import type { Projector, ScreenPoint } from './camera-state'
@@ -25,6 +30,44 @@ export interface ToolDependencies {
   selectPoint(id: ObjectId): void
   /** The tool's work is done: return to the select tool (keeping the selection if asked). */
   finished(keepSelection: boolean): void
+  /** A construction could not be built (an error message for the user). */
+  report?(message: string): void
+}
+
+/** Construction tools that pick objects as well as points (roadmap Y5). */
+export type StructureAction = 'midpoint' | 'intersect' | 'project' | 'perpendicularLine' | 'parallelLine'
+  | 'perpendicularPlane' | 'parallelPlane' | 'section'
+
+/** What each click of a structure tool picks. */
+type Step = 'point' | 'pointOrSegment' | 'line' | 'plane' | 'lineOrPlane' | 'intersectable' | 'solid'
+
+export const STRUCTURE_STEPS: Readonly<Record<StructureAction, readonly Step[]>> = {
+  midpoint: ['pointOrSegment', 'point'],
+  intersect: ['intersectable', 'intersectable'],
+  project: ['point', 'lineOrPlane'],
+  perpendicularLine: ['point', 'lineOrPlane'],
+  parallelLine: ['point', 'line'],
+  perpendicularPlane: ['point', 'line'],
+  parallelPlane: ['point', 'plane'],
+  section: ['solid', 'plane'],
+}
+
+export function isStructure(action: ToolAction): action is StructureAction {
+  return Object.hasOwn(STRUCTURE_STEPS, action)
+}
+
+const LINE_TYPES = new Set(['line', 'segment', 'ray'])
+
+function accepts(step: Step, object: GeometryObject): boolean {
+  switch (step) {
+    case 'line': return LINE_TYPES.has(object.type)
+    case 'plane': return object.type === 'plane'
+    case 'lineOrPlane': return LINE_TYPES.has(object.type) || object.type === 'plane'
+    case 'intersectable': return LINE_TYPES.has(object.type) || object.type === 'plane' || object.type === 'sphere'
+    case 'pointOrSegment': return object.type === 'segment'
+    case 'solid': return isUnfoldable(object) || object.type === 'sphere'
+    case 'point': return false
+  }
 }
 
 type Pick =
@@ -123,6 +166,10 @@ export class ToolController {
 
   private act(spot: ScreenPoint, kind: PointerKind): void {
     if (this.current === 'select') return
+    if (isStructure(this.current)) {
+      this.actStructure(this.current, spot, kind)
+      return
+    }
     const pick = this.pick(spot, kind)
     if (!pick) return
     const { document } = this.deps
@@ -138,7 +185,7 @@ export class ToolController {
       this.deps.refresh()
       return
     }
-    const construction = this.current
+    const construction = this.current as ConstructionKind
     const previous = this.stagedPositions()
     if (!acceptsPoint(construction, previous, pickPosition(pick))) return
     let id: ObjectId
@@ -158,6 +205,82 @@ export class ToolController {
       return
     }
     this.build(construction)
+  }
+
+  /** Stage a picked point, creating it as a draft when it is new. */
+  private stagePoint(pick: Pick): void {
+    const { document } = this.deps
+    if (pick.kind === 'existing') {
+      this.staged.push(pick.point.id)
+      this.deps.selectPoint(pick.point.id)
+      return
+    }
+    const point = this.newPoint(pick)
+    document.append(point)
+    document.trackDraft(point.id)
+    this.created.push(point.id)
+    this.staged.push(point.id)
+  }
+
+  private actStructure(action: StructureAction, spot: ScreenPoint, kind: PointerKind): void {
+    const { document, projector } = this.deps
+    const step = STRUCTURE_STEPS[action][this.staged.length]!
+    const tolerance = hitTolerance(kind)
+    if (step === 'point' || step === 'pointOrSegment') {
+      // A segment as the first pick of the midpoint tool is enough on its own.
+      if (step === 'pointOrSegment' && !nearestPoint(document.objects, projector, spot, tolerance)) {
+        const hit = hitPart(document.objects, this.deps.shapes(), projector, spot, tolerance)
+        const target = hit ? selectionTarget(document, hit.ownerId) : undefined
+        if (target && accepts(step, target)) {
+          this.buildStructure(action, [target.id], true)
+          return
+        }
+      }
+      const pick = this.pick(spot, kind)
+      if (!pick) return
+      if (this.staged.some(id => {
+        const point = document.get(id)
+        return isPoint(point) && distance(point.position, pickPosition(pick)) < SAME_POINT
+      })) return
+      this.stagePoint(pick)
+    } else {
+      const hit = hitPart(document.objects, this.deps.shapes(), projector, spot, tolerance)
+      const target = hit ? selectionTarget(document, hit.ownerId) : undefined
+      if (!target || !accepts(step, target) || this.staged.includes(target.id)) return
+      this.staged.push(target.id)
+    }
+    if (this.staged.length < STRUCTURE_STEPS[action].length) {
+      this.deps.refresh()
+      return
+    }
+    this.buildStructure(action, this.staged, false)
+  }
+
+  /** Build through the command path, by the names of what was picked. */
+  private buildStructure(action: StructureAction, picked: readonly ObjectId[], segment: boolean): void {
+    const { document } = this.deps
+    const name = (id: ObjectId) => document.get(id)!.name
+    const reference = (id: ObjectId) => ({ kind: 'reference' as const, name: name(id) })
+    const [first, second] = picked
+    const command: Command = action === 'midpoint'
+      ? (segment ? { kind: 'midpoint', A: reference(first!) } : { kind: 'midpoint', A: reference(first!), B: reference(second!) })
+      : action === 'intersect' ? { kind: 'intersect', first: name(first!), second: name(second!) }
+        : action === 'section' ? { kind: 'section', solid: name(first!), plane: name(second!) }
+          : { kind: action, point: reference(first!), target: name(second!) }
+    const prepared = prepareCommand(null, command, { objects: document.objects, shapes: this.deps.shapes(), nextId: document.nextId })
+    if (!prepared.ok) {
+      this.cancel()
+      this.deps.report?.(prepared.error)
+      this.deps.refresh()
+      return
+    }
+    document.finishDraft()
+    document.append(...prepared.objects)
+    resolveDocument(document.objects)
+    document.commit()
+    this.staged = []
+    this.created = []
+    this.deps.finished(false)
   }
 
   private stagedPositions(): Vec3[] {
@@ -186,12 +309,20 @@ export class ToolController {
   /** The cursor point and the object the next click would finish. */
   preview(): Preview | null {
     if (this.current === 'select' || !this.hover) return null
+    // Structure tools show the cursor only while the next pick is a point.
+    if (isStructure(this.current)) {
+      const step = STRUCTURE_STEPS[this.current][this.staged.length]
+      if (step !== 'point' && step !== 'pointOrSegment') return null
+      const pick = this.pick(this.hover.spot, this.hover.kind)
+      if (!pick) return null
+      return { cursor: this.hover.kind === 'touch' || pick.kind !== 'existing' ? pickPosition(pick) : null, shape: null }
+    }
     const pick = this.pick(this.hover.spot, this.hover.kind)
     if (!pick) return null
     const cursor = pickPosition(pick)
     const shown = this.hover.kind === 'touch' || pick.kind !== 'existing' ? cursor : null
     if (this.current === 'point') return { cursor: shown, shape: null }
-    return { cursor: shown, shape: previewShape(this.current, [...this.stagedPositions(), cursor], this.sides) }
+    return { cursor: shown, shape: previewShape(this.current as ConstructionKind, [...this.stagedPositions(), cursor], this.sides) }
   }
 }
 
@@ -214,8 +345,14 @@ export function previewShape(kind: ConstructionKind, points: readonly Vec3[], si
     case 'prism':
     case 'pyramid':
       return polyhedronShape(kind, a, b, initialSidePoint(a, b), sides, distance(a, b))
+    case 'frustum':
+      return polyhedronShape('pyramid', a, b, initialSidePoint(a, b), sides, distance(a, b), DEFAULT_TOP_RATIO)
     case 'cylinder':
     case 'cone':
       return roundShape(kind, a, b, 2 * distance(a, b))
+    case 'frustumCone':
+      return roundShape('cone', a, b, 2 * distance(a, b), DEFAULT_TOP_RATIO)
+    default:
+      return regularShape(kind, a, b, initialSidePoint(a, b))
   }
 }

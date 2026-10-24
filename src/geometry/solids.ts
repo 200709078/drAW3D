@@ -1,7 +1,8 @@
-import type { LineKind, PolyhedronKind, RoundKind } from './types'
+import type { SectionShape } from './section'
+import type { LineKind, PolyhedronKind, RegularKind, RoundKind } from './types'
 import {
   EPSILON, UP, X_AXIS, add, addScaled, angleBetween, anyPerpendicular, centroid, cross, distance, dot,
-  length, normalize, rotateAround, scale, sub, toDegrees, vec, type Vec3,
+  length, lerp, normalize, rotateAround, scale, sub, vec, type Vec3,
 } from './vec3'
 
 /** Drawn length of a line (centered between its points) and of a ray. */
@@ -51,28 +52,36 @@ export interface SphereShape {
   radius: number
 }
 
+/** Prisms, pyramids, frustums (cut pyramids) and the regular polyhedra. */
+export type PolyhedronSolid = PolyhedronKind | 'frustum' | RegularKind
+
 export interface PolyhedronShape {
   kind: 'polyhedron'
-  solid: PolyhedronKind
+  solid: PolyhedronSolid
   /** Base polygon; base[0] = A, base[1] = B. */
   base: Vec3[]
-  /** Prism: the top polygon. Pyramid: empty. */
+  /** Prism and frustum: the top polygon. Otherwise empty. */
   top: Vec3[]
-  /** Pyramid apex; the prism has none. */
+  /** Pyramid apex (also the apex a frustum was cut from); null otherwise. */
   apex: Vec3 | null
   baseCenter: Vec3
   /** Unit normal from the base toward the top/apex. */
   normal: Vec3
   height: number
-  /** The dashed height line: A–A' for a prism, center–apex for a pyramid. */
+  /**
+   * The dashed height line: A–A' for a prism, center–apex for a pyramid, center–top center
+   * for a frustum. Regular polyhedra have none (start equals end).
+   */
   heightStart: Vec3
   heightEnd: Vec3
-  /** Prism: base then top. Pyramid: base then apex. */
+  /** Prism and frustum: base then top. Pyramid: base then apex. Regular: A, B, then the rest. */
   vertices: Vec3[]
-  /** Vertex indices of each face: base first, then the top (prism), then the sides. */
+  /** Vertex indices of each face, base first (prism/frustum: then the top, then the sides). */
   faces: number[][]
-  /** Base edges, then top edges (prism), then side edges. */
+  /** Prism/frustum: base edges, top edges, side edges. Pyramid: base, then sides. */
   edges: [number, number][]
+  /** Cube only: which of the 11 nets opens. */
+  net?: number
 }
 
 export interface RoundShape {
@@ -86,16 +95,18 @@ export interface RoundShape {
   v: Vec3
   radius: number
   height: number
-  /** Cylinder: top center. Cone: apex. */
+  /** Cylinder and cut cone: top center. Cone: apex. */
   top: Vec3
+  /** Top circle radius: the radius for a cylinder, 0 for a cone, between for a cut cone. */
+  topRadius: number
   /** The radius point on the base circle. */
   rim: Vec3
-  /** Cylinder: the point above the radius point. Cone: the apex. */
+  /** The top circle's point above the radius point; the apex of a cone. */
   topRim: Vec3
 }
 
 export type SolidShape = PolyhedronShape | RoundShape
-export type Shape = LineShape | PlaneShape | AngleShape | SphereShape | SolidShape
+export type Shape = LineShape | PlaneShape | AngleShape | SphereShape | SolidShape | SectionShape
 
 export function lineShape(extent: LineKind, a: Vec3, b: Vec3): LineShape | null {
   const direction = normalize(sub(b, a))
@@ -176,7 +187,7 @@ function polyhedronNormal(a: Vec3, b: Vec3, c: Vec3): Vec3 | null {
 }
 
 export function polyhedronShape(
-  solid: PolyhedronKind, a: Vec3, b: Vec3, c: Vec3, sides: number, height: number,
+  solid: PolyhedronKind, a: Vec3, b: Vec3, c: Vec3, sides: number, height: number, topRatio?: number,
 ): PolyhedronShape | null {
   const base = regularPolygonFromEdge(a, b, c, sides)
   const normal = polyhedronNormal(a, b, c)
@@ -192,6 +203,20 @@ export function polyhedronShape(
     return {
       kind: 'polyhedron', solid, base, top, apex: null, baseCenter, normal, height,
       heightStart: a, heightEnd: top[0]!,
+      vertices: [...base, ...top], faces,
+      edges: [...baseEdges, ...baseEdges.map(([from, to]): [number, number] => [n + from, n + to]),
+        ...base.map((_, index): [number, number] => [index, n + index])],
+    }
+  }
+  if (topRatio !== undefined && topRatio > 0 && topRatio < 1) {
+    // A frustum: the pyramid of height h / (1 − k) cut at height h.
+    const apex = addScaled(baseCenter, normal, height / (1 - topRatio))
+    const top = base.map(vertex => lerp(vertex, apex, 1 - topRatio))
+    const faces = [baseFace, baseFace.map(index => n + index)]
+    for (let index = 0; index < n; index++) faces.push([index, (index + 1) % n, n + (index + 1) % n, n + index])
+    return {
+      kind: 'polyhedron', solid: 'frustum', base, top, apex, baseCenter, normal, height,
+      heightStart: baseCenter, heightEnd: addScaled(baseCenter, normal, height),
       vertices: [...base, ...top], faces,
       edges: [...baseEdges, ...baseEdges.map(([from, to]): [number, number] => [n + from, n + to]),
         ...base.map((_, index): [number, number] => [index, n + index])],
@@ -214,16 +239,19 @@ export function roundAxis(center: Vec3, rim: Vec3): Vec3 {
   return normalize(addScaled(UP, radial, -dot(UP, radial))) ?? X_AXIS
 }
 
-export function roundShape(solid: RoundKind, center: Vec3, rim: Vec3, height: number): RoundShape | null {
+/** A cylinder, a cone, or with `topRatio` (0–1) a cone cut parallel to its base. */
+export function roundShape(solid: RoundKind, center: Vec3, rim: Vec3, height: number, topRatio?: number): RoundShape | null {
   const radial = sub(rim, center)
   const radius = length(radial)
   const u = normalize(radial)
   if (!u || !(height > 0)) return null
   const axis = roundAxis(center, rim)
   const top = addScaled(center, axis, height)
+  const ratio = solid === 'cylinder' ? 1 : topRatio !== undefined && topRatio > 0 && topRatio < 1 ? topRatio : 0
+  const topRadius = radius * ratio
   return {
-    kind: 'round', solid, baseCenter: center, axis, u, v: cross(axis, u), radius, height, top, rim,
-    topRim: solid === 'cylinder' ? addScaled(rim, axis, height) : top,
+    kind: 'round', solid, baseCenter: center, axis, u, v: cross(axis, u), radius, height, top, topRadius, rim,
+    topRim: addScaled(top, u, topRadius),
   }
 }
 
@@ -231,27 +259,16 @@ export function circlePoint(center: Vec3, u: Vec3, v: Vec3, radius: number, angl
   return add(center, add(scale(u, Math.cos(angle) * radius), scale(v, Math.sin(angle) * radius)))
 }
 
-/** Largest opening angle in degrees: where every face reaches the base plane. */
-export function maxUnfoldAngle(shape: SolidShape): number {
-  if (shape.kind === 'round') {
-    if (shape.solid === 'cylinder') return 90
-    // The slant line turns from its own angle with the base down onto the base plane.
-    return 180 - toDegrees(Math.atan2(shape.height, shape.radius))
-  }
-  if (shape.solid === 'prism') return 90
-  const [start, end] = [shape.base[0]!, shape.base[1]!]
-  const sideNormal = normalize(cross(sub(end, start), sub(shape.apex!, start)))
-  if (!sideNormal) return 0
-  const between = toDegrees(angleBetween(sideNormal, shape.normal))
-  return 180 - Math.min(between, 180 - between)
+/** Slant length of a round solid's side. */
+export function slantLength(shape: RoundShape): number {
+  return Math.hypot(shape.height, shape.radius - shape.topRadius)
 }
 
 /** Total surface area, used to check that nets keep every face. */
 export function surfaceArea(shape: SolidShape): number {
   if (shape.kind === 'round') {
-    const r = shape.radius
-    if (shape.solid === 'cylinder') return 2 * Math.PI * r * shape.height + 2 * Math.PI * r * r
-    return Math.PI * r * Math.hypot(r, shape.height) + Math.PI * r * r
+    const [r, t] = [shape.radius, shape.topRadius]
+    return Math.PI * (r + t) * slantLength(shape) + Math.PI * (r * r + t * t)
   }
   return shape.faces.reduce((sum, face) => sum + polygonArea(face.map(index => shape.vertices[index]!)), 0)
 }
@@ -264,11 +281,23 @@ export function polygonArea(polygon: readonly Vec3[]): number {
   return length(total) / 2
 }
 
+/** Volume of a convex polyhedron: pyramids from its center over every face. */
+function polyhedronVolume(shape: PolyhedronShape): number {
+  const center = centroid(shape.vertices)
+  let total = 0
+  for (const face of shape.faces) {
+    const points = face.map(index => shape.vertices[index]!)
+    const normal = normalize(cross(sub(points[1]!, points[0]!), sub(points[2]!, points[0]!)))
+    if (!normal) continue
+    total += polygonArea(points) * Math.abs(dot(sub(points[0]!, center), normal)) / 3
+  }
+  return total
+}
+
 export function solidVolume(shape: SolidShape): number {
   if (shape.kind === 'round') {
-    const base = Math.PI * shape.radius ** 2
-    return shape.solid === 'cylinder' ? base * shape.height : base * shape.height / 3
+    const [r, t] = [shape.radius, shape.topRadius]
+    return Math.PI * shape.height * (r * r + r * t + t * t) / 3
   }
-  const base = polygonArea(shape.base)
-  return shape.solid === 'prism' ? base * shape.height : base * shape.height / 3
+  return polyhedronVolume(shape)
 }

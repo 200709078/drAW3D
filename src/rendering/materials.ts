@@ -39,6 +39,15 @@ export class MaterialCache {
     return this.get(`dashed:${color}`, () => new THREE.LineDashedMaterial({ color, dashSize: 0.15, gapSize: 0.1 }))
   }
 
+  /** Edges hidden behind a solid: longer dashes that stay readable through the faces. */
+  hidden(color: string): THREE.LineDashedMaterial {
+    return this.get(`hidden:${color}`, () => new THREE.LineDashedMaterial({ color, dashSize: 0.25, gapSize: 0.16 }))
+  }
+
+  dotted(color: string): THREE.LineDashedMaterial {
+    return this.get(`dotted:${color}`, () => new THREE.LineDashedMaterial({ color, dashSize: 0.04, gapSize: 0.1 }))
+  }
+
   /** Unlit and drawn over everything: tool previews and the cursor. */
   overlay(color: string, opacity = 1): THREE.MeshBasicMaterial {
     return this.get(`overlay:${color}:${opacity}`, () => new THREE.MeshBasicMaterial({

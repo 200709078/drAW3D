@@ -1,0 +1,100 @@
+/* Desktop (Electron) title bar, matching the drAW desktop app. */
+:root {
+	--titlebar-height: 36px;
+}
+
+.titlebar {
+	position: fixed;
+	top: 0;
+	right: 0;
+	left: 0;
+	z-index: 10000;
+	display: flex;
+	align-items: stretch;
+	justify-content: space-between;
+	height: var(--titlebar-height);
+	background: #6b7280;
+	color: #e2e8f0;
+	font-family: system-ui, sans-serif;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.titlebar__drag {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 0 12px;
+	-webkit-app-region: drag;
+}
+
+.titlebar__icon {
+	display: block;
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	pointer-events: none;
+}
+
+.titlebar__title {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.2px;
+	color: #e2e8f0;
+}
+
+.titlebar__controls {
+	display: flex;
+	align-items: stretch;
+	-webkit-app-region: no-drag;
+}
+
+.titlebar__button {
+	display: grid;
+	place-items: center;
+	width: 46px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #cbd5e1;
+	cursor: pointer;
+	-webkit-app-region: no-drag;
+}
+
+.titlebar__button:hover {
+	background: rgb(255 255 255 / 12%);
+	color: white;
+}
+
+.titlebar__button--close:hover {
+	background: #e11d48;
+	color: white;
+}
+
+.titlebar__button svg {
+	display: block;
+	width: 12px;
+	height: 12px;
+}
+
+/* Below the bar, the wrapper is the containing block of the fixed canvas, panel and toolbars. */
+body.has-custom-titlebar #centerWrapper {
+	position: fixed;
+	top: var(--titlebar-height);
+	right: 0;
+	bottom: 0;
+	left: 0;
+	width: auto;
+	height: auto;
+	margin: 0;
+	contain: layout;
+}
+
+body.has-custom-titlebar .help-popup {
+	top: var(--titlebar-height);
+}

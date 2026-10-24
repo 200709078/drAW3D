@@ -1,37 +1,73 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="tr">
 
 <head>
-  <title>drAW3D | mADEMatik</title>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html" charset="UTF-8">
-  <meta name="keywords" content="Graph, functions, axis, javascript, canvas, drAW2D, drAW3D">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="made by mADEMatik">
-  <meta name="author" content="made by mADEMatik">
-  <link rel="icon" type="image/svg+xml" href="src/assets/favicon.png" />
+	<title>drAW3D | mADEMatik</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="keywords" content="Geometri, 3B, açınım, prizma, piramit, silindir, koni, drAW2D, drAW3D">
+	<meta name="description" content="made by mADEMatik">
+	<meta name="author" content="made by mADEMatik">
+	<link rel="icon" type="image/png" href="img/favicon.png" />
+	<!-- Stiller ilk çizimden önce yüklenir; JavaScript'ten eklenince simgeler bir an doğal boyutlarında görünür. -->
+	<link rel="stylesheet" href="/src/styles/toolbar.css" />
+	<link rel="stylesheet" href="/src/styles/styles.css" />
+	<link rel="stylesheet" href="/src/styles/titlebar.css" />
 </head>
 
 <body>
-  <div id="app"></div>
-
-  <div id="rightControls" style="display: none;">
-    <div id="unFoldControl" class="passive">
-      <div>Açınım: <span id="unFoldValue">0</span>°</div>
-      <input id="unFoldSlider" type="range" min="0" max="90" value="0" step="1" disabled />
-    </div>
-
-    <div id="sideControl" class="passive">
-      <div>Kenar Sayısı: <span id="sideValue">4</span></div>
-      <input id="sideSlider" type="range" min="3" max="20" value="4" step="1" />
-    </div>
-  </div>
-
-  <a id="made-signature" href="https://www.madematik.com" target="_blank" rel="noopener noreferrer">
-    <span>m</span><span class="made-highlight">ADEM</span><span>atik</span>
-  </a>
-
-  <script type="module" src="/src/main.ts"></script>
+	<div id="centerWrapper">
+		<div id="mainToolbar" class="main-toolbar" role="toolbar" aria-label="Araçlar" data-action="select">
+			<button id="currentTool" class="toolbar-button current-tool" type="button" title="Araçlar"></button>
+			<div id="toolGroups" class="tool-groups"></div>
+			<div class="toolbar-actions">
+				<button type="button" id="undo" class="toolbar-button" title="Geri Al" disabled>
+					<img src="./img/undo.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="redo" class="toolbar-button" title="Yinele" disabled>
+					<img src="./img/redo.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="delete" class="toolbar-button" title="Sil" disabled>
+					<img src="./img/delete.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="hide" class="toolbar-button" title="Gizle" disabled>
+					<img src="./img/hide.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="showAll" class="toolbar-button" title="Tümünü Göster" disabled>
+					<img src="./img/show.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="groundToggle" class="toolbar-button" title="Düzlemi Gizle">
+					<img src="./img/grid.svg" width="26" height="26" alt="">
+				</button>
+				<button type="button" id="standardView" class="toolbar-button" title="Standart Görünüm">
+					<img src="./img/default.svg" width="26" height="26" alt="">
+				</button>
+			</div>
+		</div>
+		<div id="viewport">
+			<canvas id="scene"></canvas>
+			<div id="sceneLabels" class="scene-labels" aria-hidden="true"></div>
+		</div>
+		<!-- Dar ekranda araçlar alttan açılan bir panelde gruplanır. -->
+		<div id="toolsSheet" class="tools-sheet" hidden>
+			<div id="toolsPanel" class="tools-panel"></div>
+		</div>
+		<div id="objectControls" class="object-controls" hidden>
+			<label id="sideControl" class="object-control" hidden>
+				<span>Kenar Sayısı: <output id="sideValue">4</output></span>
+				<input id="sideSlider" type="range" min="3" max="20" value="4" step="1">
+			</label>
+			<label id="unfoldControl" class="object-control" hidden>
+				<span>Açınım: <output id="unfoldValue">0</output>°</span>
+				<input id="unfoldSlider" type="range" min="0" max="90" value="0" step="1">
+			</label>
+		</div>
+	</div>
+	<div id="snackbar" class="tool-toast" role="status" aria-live="polite">
+		<strong id="snackTitle" class="tool-toast-title"></strong>
+		<span id="snackContent" class="tool-toast-message"></span>
+	</div>
+	<script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>

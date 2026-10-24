@@ -1,20 +1,81 @@
 {
   "name": "draw3d",
+  "productName": "drAW3D",
+  "desktopName": "draw3d",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "description": "drAW3D — 3B geometri ve açınım uygulaması",
+  "author": "mADEMatik <madematik@madematik.com>",
+  "homepage": "https://www.madematik.com",
+  "main": "dist-electron/main.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "devDependencies": {
-    "@types/three": "^0.184.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.10"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.electron.json --noEmit",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run typecheck && npm run build:electron && vite build",
+    "preview": "vite preview",
+    "electron:dev": "npm run build:electron && node scripts/dev-electron.mjs",
+    "electron": "npm run build && node scripts/start-electron.mjs",
+    "test": "playwright test",
+    "test:electron": "npm run build && node scripts/test-electron.mjs",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb",
+    "dist:win": "npm run build && electron-builder --win nsis"
   },
   "dependencies": {
-    "three": "^0.184.0",
-    "tree": "^0.1.3"
+    "three": "0.184.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^22.20.5",
+    "@types/three": "^0.184.0",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.4"
+  },
+  "build": {
+    "appId": "com.madematik.draw3d",
+    "productName": "drAW3D",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icons",
+      "category": "Education;Math",
+      "executableName": "draw3d",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "Name": "drAW3D",
+          "Comment": "3B geometri ve açınım"
+        }
+      }
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "drAW3D"
+    }
   }
 }

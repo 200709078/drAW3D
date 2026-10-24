@@ -1,0 +1,280 @@
+:root {
+  --toolbar-height: 52px;
+  --toolbar-active: #dbeafe;
+  --toolbar-active-border: #93b4e6;
+  --text: #2f2f2f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: #f4f4f4;
+}
+
+/* Tool groups on the left, document actions on the right, above the canvas. */
+.main-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 320px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--toolbar-height);
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #d6dce8;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  transition: right 1s;
+}
+
+.tool-groups {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tool-group {
+  position: relative;
+}
+
+.toolbar-button,
+.tool-group-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toolbar-button:hover:not(:disabled),
+.tool-group-button:hover {
+  background: #eef2f8;
+}
+
+.tool-group-button.is-active {
+  background: var(--toolbar-active);
+  border-color: var(--toolbar-active-border);
+}
+
+/* A small corner triangle marks groups with more tools. */
+.tool-group-button.has-menu::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  border-style: solid;
+  border-width: 0 0 7px 7px;
+  border-color: transparent transparent #64748b transparent;
+}
+
+.tool-group-button img,
+.toolbar-button img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.toolbar-button img {
+  width: 26px;
+  height: 26px;
+  filter: grayscale(1) brightness(0.45);
+}
+
+.toolbar-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.tool-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 260px;
+  padding: 4px;
+  border: 1px solid #d6dce8;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+}
+
+.tool-menu[hidden] {
+  display: none;
+}
+
+.tool-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-menu-item:hover {
+  background: #eef2f8;
+}
+
+.tool-menu-item.is-active {
+  background: var(--toolbar-active);
+}
+
+.tool-menu-item img {
+  flex: none;
+  pointer-events: none;
+}
+
+.tool-menu-text strong {
+  display: block;
+  font-size: 13px;
+}
+
+.tool-menu-text small {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* The narrow layout shows only the active tool; it opens the tools tab. */
+.current-tool {
+  display: none;
+}
+
+.panel-tabs,
+.tools-panel {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .main-toolbar {
+    right: 0;
+  }
+
+  .tool-groups {
+    display: none;
+  }
+
+  .current-tool {
+    display: grid;
+    border-color: var(--toolbar-active-border);
+    background: var(--toolbar-active);
+  }
+
+  .current-tool img {
+    filter: none;
+  }
+
+  .panel-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 20px 10px 0;
+  }
+
+  .panel-tab {
+    flex: 1;
+    height: 34px;
+    border: 1px solid #d6dce8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .panel-tab[aria-selected="true"] {
+    background: var(--toolbar-active);
+    border-color: var(--toolbar-active-border);
+  }
+
+  /* Groups flow side by side, so small groups share a row. */
+  .tools-panel:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px 14px;
+    height: calc(100% - 56px);
+    overflow-y: auto;
+    padding: 4px 10px 12px;
+  }
+
+  .tools-panel-group h3 {
+    margin: 8px 0 4px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tools-panel-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 72px;
+    gap: 6px;
+  }
+
+  .tools-panel-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 64px;
+    padding: 8px 4px;
+    border: 1px solid #d6dce8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .tools-panel-item.is-active {
+    background: var(--toolbar-active);
+    border-color: var(--toolbar-active-border);
+  }
+
+  .tools-panel-item img {
+    pointer-events: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .toolbar-button,
+  .tool-group-button {
+    width: 44px;
+    height: 44px;
+  }
+}

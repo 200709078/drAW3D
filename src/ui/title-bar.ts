@@ -40,7 +40,7 @@ export function mountTitleBar(): void {
   const controls = window.drAW3DDesktop?.windowControls
   if (!controls) return
 
-  const title = `drAW3D v_${__APP_VERSION__} | mADEMatik`
+  const title = 'drAW3D | mADEMatik'
   document.title = title
   document.body.classList.add('has-custom-titlebar')
 

@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { _electron as electron } from '@playwright/test'
 
@@ -18,8 +17,7 @@ try {
   page.on('pageerror', error => errors.push(error.message))
   page.on('requestfailed', request => errors.push(`${request.url()}: ${request.failure()?.errorText}`))
   await page.waitForLoadState('load')
-  const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-  const title = `drAW3D v_${version} | mADEMatik`
+  const title = 'drAW3D | mADEMatik'
   assert.equal(await page.title(), title)
   assert.ok(page.url().startsWith('file://'), 'Üretim çıktısı yerel dosyadan açılmalı')
 

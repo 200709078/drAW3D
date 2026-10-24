@@ -45,7 +45,7 @@ function registerWindowControls(): void {
 
 async function createWindow(): Promise<void> {
   const window = new BrowserWindow({
-    title: `drAW3D v_${app.getVersion()} | mADEMatik`,
+    title: 'drAW3D | mADEMatik',
     width: 1280,
     height: 800,
     minWidth: 640,

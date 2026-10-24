@@ -39,7 +39,7 @@ Dependencies point one way: `geometry` → `document` → `rendering` / `app` �
 
 ## Shared code with drAW2D
 
-`graph-equality.ts`, the core of `geometry-document.ts`, `frame-renderer.ts`, `main-toolbar.ts`, `toast.ts`, `title-bar.ts`, `toolbar.css`, `titlebar.css`, the Electron shell and scripts are copies of drAW2D's modules with the same API (only app names differ). Keep them in step; they will move into one shared package later (roadmap A1, waiting for the user's decision on the repository layout).
+`graph-equality.ts`, the core of `geometry-document.ts`, `frame-renderer.ts`, `main-toolbar.ts`, `toast.ts`, `title-bar.ts`, `toolbar.css`, `titlebar.css`, the Electron shell and scripts are copies of drAW2D's modules with the same API (only app names differ). Keep them in step; they will move into one shared package later (roadmap A1: deferred — if it happens, drAW, drAW2D and drAW3D move into one repository together).
 
 ## Tests
 

@@ -7,7 +7,10 @@ yapılacağına kullanıcı karar verir ve her adımdan sonra durulur.
 
 ## Planlanan sıra (2026-10-24)
 
-1. Ortak paket (A1).
+**Bekliyor (2026-10-24):** Kullanıcı geçişten sonra bu listedeki işlerin hepsini
+şimdilik beklemeye aldı. Hiçbiri kullanıcı istemeden başlatılmaz.
+
+1. Ortak paket (A1) — ertelendi, bkz. A1.
 2. Nesne kartları ve görünüm ayarları (Y1).
 3. Komut girişi, parametreler ve karttan yeniden tanımlama (Y2).
 4. Ölçümler (Y3).
@@ -30,9 +33,14 @@ matematik klavyesi, stiller, belge çekirdeği (ID, ad, snapshot geçmişi,
 `graph-equality`), kare biriktirici ve test yardımcıları.
 
 Kartlar (Y1) ve komut girişi (Y2) de bu paket üzerine kurulacağı için bu iş önce
-gelir. Seçenekler: iki projeyi tek depoda npm workspaces ile toplamak (önerilen)
+gelir. Seçenekler: projeleri tek depoda npm workspaces ile toplamak (önerilen)
 veya ayrı bir ortak paket deposu. Depo yapısı kullanıcının kararıdır. Ertelenirse
 Y1 ve Y2 için drAW2D modülleri aynı API ile kopyalanır.
+
+**Ertelendi (2026-10-24):** Kullanıcı tek depoya toplamayı şimdilik istemiyor.
+Üçüncü bir uygulama olan drAW (`../drAW`) da var; gerekirse üçü birlikte ortak
+depoya taşınacak. O zamana kadar ortak modüller drAW2D'deki dosyaların aynı API'li
+kopyaları olarak kalır ve birlikte güncel tutulur.
 
 ### A2. Android/iOS paketleme
 

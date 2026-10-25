@@ -124,6 +124,10 @@ noktayı nesnesi üzerinde en yakın yere taşır. Cisimlerin yardımcı kenarla
 adları kullanmaz (`kenar1`, `yarıçap1`), böylece `a`, `b` gibi adlar kullanıcıya
 kalır.
 
+**Klavyede büyük/küçük harf (2026-10-25, kullanıcı isteği):** matematik klavyesinin
+harf sekmesine ⇧ tuşu eklendi (drAW2D ile aynı): bir kez basınca sonraki harf büyük,
+iki kez basınca kilitli, üçüncüde kapalı; Türkçe büyük harfler (i → İ, ı → I).
+
 ### Y3. Ölçümler
 
 Uzunluk, uzaklık (nokta-doğru, nokta-düzlem, doğru-doğru), açı (iki doğru,

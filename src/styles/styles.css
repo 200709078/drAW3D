@@ -854,6 +854,18 @@ code.example:hover {
 	background: #e2e8f0;
 }
 
+/* Shift: highlighted for the next letter, underlined while locked. */
+.math-key.is-shift.is-active {
+	border-color: #1d4ed8;
+	background: #dbeafe;
+	color: #1d4ed8;
+}
+
+.math-key.is-shift.is-locked {
+	text-decoration: underline;
+	text-decoration-thickness: 2px;
+}
+
 .math-key.is-wide {
 	flex: 1.6;
 }

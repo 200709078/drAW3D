@@ -169,3 +169,26 @@ test('sahnede seçilen cismin kartı öne gelir', async ({ page }) => {
   await expect(prism.root).toHaveClass(/is-active/)
   await expect(prism.root).toBeInViewport()
 })
+
+test('klavyenin ⇧ tuşu bir harfi ya da kilitliyken bütün harfleri büyük yazar', async ({ page }) => {
+  await open(page)
+  await page.locator('#keyboardToggle').click()
+  await page.locator('#keyboardtab-letters').click()
+  const keyboard = page.locator('#mathKeyboard .math-keyboard-page:not([hidden])')
+  const press = async (...labels: string[]) => {
+    for (const label of labels) await keyboard.getByRole('button', { name: label, exact: true }).click()
+  }
+  const shift = keyboard.getByRole('button', { name: 'Büyük/Küçük harf' })
+  await shift.click()
+  await expect(shift).toHaveAttribute('aria-pressed', 'true')
+  await press('İ', 'a')
+  await expect(page.locator('#giris')).toHaveValue('İa')
+  await expect(shift).toHaveAttribute('aria-pressed', 'false')
+  await shift.click()
+  await shift.click()
+  await press('I', 'Ş')
+  await expect(page.locator('#giris')).toHaveValue('İaIŞ')
+  await shift.click()
+  await press('ı')
+  await expect(page.locator('#giris')).toHaveValue('İaIŞı')
+})

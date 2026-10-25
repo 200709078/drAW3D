@@ -7,6 +7,16 @@ interface TextKey {
   caret?: number
   title?: string
   wide?: boolean
+  /** A letter, written as a capital while Shift is on. */
+  letter?: boolean
+}
+
+/** Capitals: pressed once for the next letter, twice to keep them, a third time to stop. */
+interface ShiftKey {
+  label: string
+  shift: true
+  title: string
+  wide?: boolean
 }
 
 /** Keys that act like the physical key of the same name on the command input. */
@@ -17,7 +27,7 @@ interface ActionKey {
   wide?: boolean
 }
 
-type Key = TextKey | ActionKey
+type Key = TextKey | ActionKey | ShiftKey
 
 interface KeyboardTab {
   id: string
@@ -36,8 +46,15 @@ const ACTIONS: ActionKey[] = [
   { label: '⏎', key: 'Enter', title: 'Gönder', wide: true },
 ]
 
-// Turkish Q layout.
-const LETTERS = ['qwertyuıopğü', 'asdfghjklşi', 'zxcvbnmöç'].map(row => [...row].map(letter => text(letter)))
+const SHIFT: ShiftKey = { label: '⇧', shift: true, title: 'Büyük/Küçük harf' }
+
+// Turkish Q layout; Shift starts the last row as on a physical keyboard.
+const LETTERS: Key[][] = ['qwertyuıopğü', 'asdfghjklşi', 'zxcvbnmöç'].map((row, index) => [
+  ...(index === 2 ? [SHIFT] : []),
+  ...[...row].map(letter => ({ ...text(letter), letter: true })),
+])
+
+type ShiftState = 'off' | 'once' | 'locked'
 
 const TABS: KeyboardTab[] = [
   {
@@ -93,6 +110,25 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
   tabBar.setAttribute('role', 'tablist')
   const pages = new Map<string, HTMLElement>()
   const tabs = new Map<string, HTMLButtonElement>()
+  const letters: { button: HTMLButtonElement; key: TextKey }[] = []
+  const shiftButtons: HTMLButtonElement[] = []
+  let shift: ShiftState = 'off'
+
+  /** Letter keys show what they write: capitals in Turkish (i → İ, ı → I) while Shift is on. */
+  const setShift = (state: ShiftState) => {
+    shift = state
+    for (const { button, key } of letters) {
+      const label = state === 'off' ? key.label : key.label.toLocaleUpperCase('tr-TR')
+      button.textContent = label
+      button.title = label
+      button.setAttribute('aria-label', label)
+    }
+    for (const button of shiftButtons) {
+      button.classList.toggle('is-active', state !== 'off')
+      button.classList.toggle('is-locked', state === 'locked')
+      button.setAttribute('aria-pressed', String(state !== 'off'))
+    }
+  }
 
   const showTab = (id: string) => {
     for (const [tabId, page] of pages) {
@@ -101,7 +137,10 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
     }
   }
 
-  function insert(key: TextKey): void {
+  function insert(typed: TextKey): void {
+    const capital = typed.letter === true && shift !== 'off'
+    const key = capital ? { ...typed, text: typed.text.toLocaleUpperCase('tr-TR') } : typed
+    if (capital && shift === 'once') setShift('off')
     const start = input.selectionStart ?? input.value.length
     const end = input.selectionEnd ?? start
     input.value = input.value.slice(0, start) + key.text + input.value.slice(end)
@@ -162,9 +201,16 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
         button.textContent = key.label
         button.title = key.title ?? key.label
         button.setAttribute('aria-label', button.title)
+        if ('shift' in key) {
+          button.classList.add('is-action', 'is-shift')
+          shiftButtons.push(button)
+        } else if (!('key' in key) && key.letter) {
+          letters.push({ button, key })
+        }
         button.addEventListener('click', () => {
           input.focus()
-          if ('key' in key) act(key)
+          if ('shift' in key) setShift(shift === 'off' ? 'once' : shift === 'once' ? 'locked' : 'off')
+          else if ('key' in key) act(key)
           else insert(key)
         })
         line.append(button)
@@ -178,6 +224,7 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
   // Pressing a key must not move focus out of the input, or its selection would be lost.
   keyboard.addEventListener('pointerdown', event => event.preventDefault())
   keyboard.addEventListener('mousedown', event => event.preventDefault())
+  setShift('off')
   showTab('numbers')
   host.append(keyboard)
 

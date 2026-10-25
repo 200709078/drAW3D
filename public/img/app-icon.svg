@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>drAW3D</title>
+  <rect width="512" height="512" rx="96" fill="#ffffff"/>
+  <!-- Arka yüzler (içeriden görünen), çok hafif -->
+  <g fill="#93c5fd" fill-opacity="0.10">
+    <path d="M152 88H424V360H152Z"/>
+    <path d="M72 168L152 88V360L72 440Z"/>
+    <path d="M72 440L152 360H424L344 440Z"/>
+  </g>
+  <!-- Gizli kenarlar, uygulamadaki gibi kesikli -->
+  <g fill="none" stroke="#94a3b8" stroke-width="8" stroke-dasharray="18 14" stroke-linecap="round">
+    <path d="M152 88V360M152 360H424M72 440L152 360"/>
+  </g>
+  <!-- A: üç doğru parçası; W: dört doğru parçası -->
+  <g stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M106 398L156 214L206 398M124 334H188" stroke="#2563eb"/>
+    <path d="M222 214L246 398L274 288L302 398L326 214" stroke="#e11d48"/>
+  </g>
+  <!-- Köşe noktaları -->
+  <g stroke="#ffffff" stroke-width="5">
+    <g fill="#2563eb"><circle cx="106" cy="398" r="14"/><circle cx="156" cy="214" r="14"/><circle cx="206" cy="398" r="14"/></g>
+    <g fill="#e11d48"><circle cx="222" cy="214" r="14"/><circle cx="246" cy="398" r="14"/><circle cx="274" cy="288" r="14"/>
+      <circle cx="302" cy="398" r="14"/><circle cx="326" cy="214" r="14"/></g>
+  </g>
+  <!-- Görünen yüzler, hafif saydam renk -->
+  <g fill="#60a5fa">
+    <path d="M72 168L152 88H424L344 168Z" fill-opacity="0.22"/>
+    <path d="M344 168L424 88V360L344 440Z" fill-opacity="0.28"/>
+    <path d="M72 168H344V440H72Z" fill-opacity="0.12"/>
+  </g>
+  <!-- Görünen kenarlar -->
+  <g fill="none" stroke="#1f2937" stroke-width="12" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M72 168H344V440H72Z"/>
+    <path d="M72 168L152 88H424L344 168M424 88V360L344 440"/>
+  </g>
+</svg>

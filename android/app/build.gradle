@@ -9,8 +9,9 @@ if (versionParts[1] > 99 || versionParts[2] > 99) throw new GradleException("Sü
 
 // Release signing reads the keystore from the environment (GitHub secrets in the release
 // workflow); the keystore itself never enters the repository. Without it the release APK is
-// left unsigned.
-def keystorePath = System.getenv('DRAW3D_KEYSTORE')
+// left unsigned. The ANDROID_* names are shared with drAW2D; DRAW3D_* still work locally.
+def signingEnv = { name -> System.getenv("ANDROID_$name") ?: System.getenv("DRAW3D_$name") }
+def keystorePath = signingEnv('KEYSTORE')
 
 android {
     namespace = "com.madematik.draw3d"
@@ -32,9 +33,9 @@ android {
         release {
             if (keystorePath) {
                 storeFile file(keystorePath)
-                storePassword System.getenv('DRAW3D_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('DRAW3D_KEY_ALIAS')
-                keyPassword System.getenv('DRAW3D_KEY_PASSWORD')
+                storePassword signingEnv('KEYSTORE_PASSWORD')
+                keyAlias signingEnv('KEY_ALIAS')
+                keyPassword signingEnv('KEY_PASSWORD')
             }
         }
     }

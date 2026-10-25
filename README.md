@@ -77,7 +77,7 @@ npm run electron:dev     # Electron, geliştirme sunucusuyla
 npm run test:electron    # derler, uygulamayı file:// ile açıp denetler (grafik oturum gerekir)
 npm run dist:linux       # AppImage + deb
 npm run dist:win         # NSIS kurulum dosyası
-npm run android:apk      # Android APK (JDK 21 ve Android SDK gerekir; imza için DRAW3D_KEYSTORE* ortam değişkenleri)
+npm run android:apk      # Android APK (JDK 21 ve Android SDK gerekir; imza için ANDROID_KEYSTORE* ortam değişkenleri)
 ```
 
 Sürüm paketleri GitHub Actions ile üretilir (`.github/workflows/release.yml`): Linux paketleri

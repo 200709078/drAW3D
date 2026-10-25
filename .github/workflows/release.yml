@@ -1,6 +1,6 @@
 # Linux (.deb, AppImage), Windows (.exe) ve android/ klasörü olan projelerde Android (.apk)
 # paketlerini üretip GitHub sürümüne yükler. Uygulama adı ve sürüm package.json'dan okunur.
-# drAW, drAW2D ve drAW3D aynı dosyayı kullanır (Android önce drAW3D'de deneniyor).
+# drAW, drAW2D ve drAW3D aynı dosyayı kullanır; android/ klasörü olmayan projede Android işi atlanır.
 # Android APK'sı şu secret'larla imzalanır: ANDROID_KEYSTORE_BASE64 (anahtar dosyasının
 # base64'ü), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
 # - "v0.0.4" gibi bir etiket gönderilince o sürüm oluşturulur (package.json sürümüyle aynı olmalı).
@@ -115,17 +115,17 @@ jobs:
         shell: bash
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          DRAW3D_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          DRAW3D_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          DRAW3D_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$DRAW3D_KEYSTORE_PASSWORD" ] || [ -z "$DRAW3D_KEY_ALIAS" ]; then
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ]; then
             echo "::error::Android imza secret'ları eksik (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD)."
             exit 1
           fi
           # Anahtar yalnız bu makinenin geçici klasöründe durur; iş bitince makine silinir.
-          export DRAW3D_KEYSTORE="$RUNNER_TEMP/upload.jks"
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$DRAW3D_KEYSTORE"
+          export ANDROID_KEYSTORE="$RUNNER_TEMP/upload.jks"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE"
           npm ci
           npm run build
           npx cap sync android

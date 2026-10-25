@@ -92,7 +92,7 @@ ${packages.map(({ file, label }) => `- **${label}:** ${base}/releases/latest/dow
 
 - **Windows:** Windows 10 veya 11 (64-bit). Kurulum dosyası yaklaşık ${megabytes(sizes[exe])} MB.
 - **Linux:** 64-bit x86_64; Debian/Ubuntu türevi dağıtım (Pardus gibi).${installedKb > 0 ? ` DEB kurulumu yaklaşık ${megabytes(installedKb * 1024)} MB,` : ""} AppImage yaklaşık ${megabytes(sizes[appImage])} MB yer kaplar.
-${depends ? `- **DEB bağımlılıkları:** ${depends}${recommends ? ` (önerilen: ${recommends})` : ""}. Paket yöneticisi bunları otomatik kurar.\n` : ""}- **AppImage:** FUSE 2 gerektirir. Sistemde FUSE 2 yoksa \`./${appImage} --appimage-extract-and-run\` ile çalıştırılabilir.${apk ? `\n- **Android:** ${minSdk ? `Android ${ANDROID_RELEASES[minSdk] ?? `API ${minSdk}`} veya üstü` : "Android"}, WebGL destekli bir telefon veya tablet. APK yaklaşık ${megabytes(sizes[apk])} MB.` : ""}
+${depends ? `- **DEB bağımlılıkları:** ${depends}${recommends ? ` (önerilen: ${recommends})` : ""}. Paket yöneticisi bunları otomatik kurar.\n` : ""}- **AppImage:** FUSE 2 gerektirir. Sistemde FUSE 2 yoksa \`./${appImage} --appimage-extract-and-run\` ile çalıştırılabilir.${apk ? `\n- **Android:** ${minSdk ? `Android ${ANDROID_RELEASES[minSdk] ?? `API ${minSdk}`} veya üstü` : "Android"} yüklü bir telefon veya tablet. APK yaklaşık ${megabytes(sizes[apk])} MB.` : ""}
 
 ### Kurulum
 

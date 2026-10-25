@@ -24,7 +24,7 @@ aldı; aynı gün Y1, Y2 ve Y3'ü, ardından Y4 ve Y5'i, sonra Y6–Y9'u istedi 
 11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25). **Android uygulandı (2026-10-25)**; imza anahtarı ve telefonda deneme bekleniyor. iOS beklemede.
 12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor.
 13. Dar ekranda araç çubuğunun düzeni (Y11) — not, acil değil.
-14. İkinci telefon denemesinden notlar: standart görünüm, klavye yüksekliği, logo (Y12). Standart görünüm ve klavye **uygulandı (2026-10-25)**; logo için taslaklar masaüstünde, karar bekleniyor.
+14. İkinci telefon denemesinden notlar: standart görünüm, klavye yüksekliği, logo (Y12). Standart görünüm, klavye ve logo **uygulandı (2026-10-25)**.
 
 **Telefonda deneme (2026-10-25, kullanıcı):** SVG kaydı çalışıyor. Belge `.drw3.json`
 adıyla kaydediliyordu ve PNG kaydı uygulamayı çökertiyordu (dosya boş kalıyordu).
@@ -126,6 +126,11 @@ adımını içerir. Yerelde test anahtarıyla imzalı APK derlendi ve denetlendi
 **İmza anahtarı (2026-10-25):** Kullanıcı anahtarı oluşturdu, yedekledi ve GitHub
 secret'larına ekledi; yayımlamadan yapılan derlemede APK bu anahtarla imzalandı
 (`CN=mADEMatik`, sertifika SHA-256 `84f78df0…b856f1fa96`).
+
+**Ortak anahtar (2026-10-25, kullanıcı kararı):** drAW2D de aynı anahtarı kullanır; dosyanın
+adı `draw3d-release.jks` iken `draw-general-release.jks` oldu. Ad imzayı ve secret'ları
+etkilemez. İmza ortam değişkenleri iki projede ortak adlarla `ANDROID_KEYSTORE*` oldu;
+`android/app/build.gradle` eski `DRAW3D_*` adlarını da okur.
 
 **İlk telefon denemesi (2026-10-25):** SVG kaydı çalıştı. İki hata bulundu ve
 düzeltildi:
@@ -472,5 +477,10 @@ olmalı", "klavye-1", "klavye-2").
   dokunulmadı. A: tel kafes küp, içinde noktalar ve doğru parçalarıyla çizilmiş AW.
   B: dolu mavi küp, ön yüzünde AW. C (kullanıcının isteğiyle A'dan): AW küpün sol ön
   dikey kenarından sağ arka dikey kenarına uzanan köşegen düzlemde, küpün yüzleri hafif
-  saydam renkli.
+  saydam renkli. D: C'de harfler köşegen düzlemde daha ortada.
+- **Logo seçildi (2026-10-25, kullanıcı):** E taslağı — A'daki gibi ön yüze paralel,
+  noktalar ve doğru parçalarıyla çizilmiş AW; küpün yüzleri C'deki gibi hafif saydam,
+  gizli kenarlar kesikli. Kaynağı `public/img/app-icon.svg`; web, masaüstü paketleri
+  (`build/icons`, `build/icon.ico`) ve Android simgeleri `scripts/icons.sh` ile ondan
+  üretilir.
 

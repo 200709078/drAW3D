@@ -2,7 +2,7 @@
   "name": "draw3d",
   "productName": "drAW3D",
   "desktopName": "draw3d",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "drAW3D — 3B geometri ve açınım uygulaması",

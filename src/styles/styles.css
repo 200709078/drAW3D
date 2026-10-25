@@ -781,7 +781,10 @@ code.example:hover {
 	pointer-events: none;
 }
 
+/* Every tab is as tall as the tallest (five rows), so switching tabs never moves the
+   keyboard's edge; shorter tabs get taller keys, the commands scroll inside. */
 .math-keyboard {
+	--math-keyboard-page: 190px;
 	position: absolute;
 	right: 0;
 	bottom: 0;
@@ -801,7 +804,13 @@ code.example:hover {
 
 /* Room for the keyboard below the object list. */
 #rightWrapper.has-keyboard #scrollWrapper {
-	padding-bottom: 236px;
+	padding-bottom: 240px;
+}
+
+.math-keyboard-page {
+	display: flex;
+	flex-direction: column;
+	height: var(--math-keyboard-page);
 }
 
 .math-keyboard-tabs {
@@ -828,14 +837,17 @@ code.example:hover {
 
 .math-keyboard-row {
 	display: flex;
+	flex: 1;
 	gap: 4px;
+	min-height: 0;
 	margin-top: 4px;
 }
 
 .math-key {
 	flex: 1;
 	min-width: 0;
-	height: 34px;
+	height: auto;
+	min-height: 30px;
 	padding: 0 2px;
 	border: 1px solid #d0d7e2;
 	border-radius: 6px;
@@ -870,15 +882,16 @@ code.example:hover {
 	flex: 1.6;
 }
 
-/* Commands wrap into rows of named buttons. */
+/* Commands wrap into rows of named buttons and scroll within the page. */
 .math-keyboard-commands .math-keyboard-row {
 	flex-wrap: wrap;
-	max-height: 156px;
+	align-content: flex-start;
 	overflow-y: auto;
 }
 
 .math-keyboard-commands .math-key {
 	flex: 1 0 45%;
+	height: 34px;
 	overflow: hidden;
 	padding: 0 6px;
 	font-size: 11px;
@@ -1017,6 +1030,11 @@ code.example:hover {
 
 	#rightWrapper.hide {
 		transform: translateY(100%);
+	}
+
+	/* With the keyboard open the sheet keeps the input and a card visible above it. */
+	#rightWrapper.has-keyboard {
+		height: clamp(42%, 440px, 80%);
 	}
 
 	/* A wide, finger-sized grip along the top edge. */

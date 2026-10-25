@@ -22,6 +22,33 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- .drw3 documents open in drAW3D. Android knows no type for .drw3: file managers
+                 pass it as application/octet-stream (drAW3D saves it so), usually through a
+                 content:// address without the file name, so the type is what matches. The
+                 contents are checked when the file opens. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <!-- Apps that keep the name in the address: match the extension (Android's pattern
+                 matching stops at the first dot, hence one pattern per extra dot). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.drw3" />
+                <data android:pathPattern=".*\\..*\\.drw3" />
+                <data android:pathPattern=".*\\..*\\..*\\.drw3" />
+            </intent-filter>
+
         </activity>
 
         <provider

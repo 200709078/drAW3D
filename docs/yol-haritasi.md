@@ -24,6 +24,7 @@ aldı; aynı gün Y1, Y2 ve Y3'ü, ardından Y4 ve Y5'i, sonra Y6–Y9'u istedi 
 11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25). **Android uygulandı (2026-10-25)**; imza anahtarı ve telefonda deneme bekleniyor. iOS beklemede.
 12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor.
 13. Dar ekranda araç çubuğunun düzeni (Y11) — not, acil değil.
+14. İkinci telefon denemesinden notlar: standart görünüm, klavye yüksekliği, logo (Y12). Standart görünüm ve klavye **uygulandı (2026-10-25)**; logo için taslaklar masaüstünde, karar bekleniyor.
 
 **Telefonda deneme (2026-10-25, kullanıcı):** SVG kaydı çalışıyor. Belge `.drw3.json`
 adıyla kaydediliyordu ve PNG kaydı uygulamayı çökertiyordu (dosya boş kalıyordu).
@@ -137,9 +138,26 @@ düzeltildi:
   önce yalnız ad ve türle yer sorulur (`create`), veri yer seçildikten sonra ayrı
   çağrıyla yazılır (`write`).
 
-**Bekleyen (A2):** Düzeltmelerin telefonda yeniden denenmesi (dosya, PNG, yazdırma,
-geri tuşu, ısınma); `.drw3` dosyalarının uygulamayla açılması (intent filter) sonraki
-adım; AAB/Play Store sonra.
+**İkinci telefon denemesi (2026-10-25):** PNG, SVG ve `.drw3` kaydı (adı artık yalnız
+`.drw3`), açınımı yazdırma ve PDF olarak kaydetme, geri tuşu (menü, araç, klavye, alt
+panel, yardım, sonra arka plan) ve otomatik kayıt (uygulama kapatılıp açılınca, arka
+plana geçerken) çalışıyor. Yeni notlar Y12'de.
+
+**`.drw3` dosyalarının drAW3D ile açılması uygulandı (2026-10-25):** Manifest'te iki
+`VIEW` filtresi: `application/octet-stream` türü (Android `.drw3` için tür bilmez; dosya
+yöneticileri onu böyle verir, drAW3D de öyle kaydeder) ve adresinde `.drw3` uzantısı
+olan dosyalar. Bu yüzden drAW3D, türü bilinmeyen dosyalarda da "Birlikte aç" listesinde
+görünür; içerik açılırken denetlenir, drAW3D belgesi değilse bildirilir. Uygulama
+kapalıyken dokunulan dosya açılışta (`App.getLaunchUrl`), açıkken dokunulan dosya hemen
+(`appUrlOpen`) açılır; açmak tek geçmiş adımıdır (Geri Al önceki çizime döner).
+Eklentinin `read` yöntemi dosyayı verilen izinle okur; Kaydet o dosyaya yazamazsa
+(çoğu uygulama yalnız okuma izni verir) kaydet penceresi açılır. Bilinen sınır:
+uygulama Android tarafından kapatılıp son uygulamalardan yeniden açılırsa Android
+aynı dosyayı yeniden verebilir; o zaman dosya yeniden açılır (Geri Al ile önceki
+çizime dönülür).
+
+**Bekleyen (A2):** Dosyaya dokunarak açmanın telefonda denenmesi; ilk Android'li sürümün
+yayımlanması; uzun kullanımda ısınma ve pil; AAB/Play Store sonra.
 
 ## Özellikler
 
@@ -417,3 +435,42 @@ Profiller `rendering/display.ts`'te:
   "⋯" düğmesinin altında toplanan işlemler) daha iyi olabilir.
 - Alt paneli açıp kapatan düğmenin üst çubukta olması garip duruyor. Düğme panelin
   kendi üzerinde (örneğin panelin tutamacında) ya da başka bir yerde olmalı.
+
+### Y12. İkinci telefon denemesinden notlar
+
+**Kullanıcı notları (2026-10-25):** Henüz kodlanmayacak. Ekran görüntüleri kullanıcının
+masaüstünde ("şu anki standart görünüm", "standart görünüm bence böyle biraz uzak
+olmalı", "klavye-1", "klavye-2").
+
+1. **Standart görünüm telefonda çok yakın.** Kamera hep aynı noktadan bakıyor
+   (`STANDARD_POSITION` = (18, 15, 18), dikey görüş açısı 75°). Dikey tutulan telefonda
+   yatay görüş çok dar kaldığı için bir silindir bile ekranı kaplıyor. İstenen: ikinci
+   ekran görüntüsündeki gibi cisim ortada, zemin ızgarası bütünüyle görünür. Olası
+   yollar: standart görünümde uzaklığı ekranın en/boy oranına göre ayarlamak (dar
+   ekranda kamerayı geri çekmek) ya da çizimdeki nesneleri ekrana sığdırmak.
+2. **Matematik klavyesinin yüksekliği sabit olmalı.** "123" sekmesinde klavye uzun ve
+   giriş alanının üstünü kapatıyor; "Komutlar" sekmesinde yüksekliği farklı. Sekmeler
+   arasında geçince yükseklik değişmesin; giriş alanı ve kartın üstü açık kalsın. Aynı
+   değişiklik drAW2D'nin klavyesine de yapılacak (drAW'da matematik klavyesi yok).
+3. **Logo/simge:** Şu anki simgede küpün içinde "G" harfi var. Küpün içinde "AW" olan
+   daha sade bir simge ya da başka bir tasarım düşünülüyor; kullanıcı kararını
+   vermedi. drAW2D'nin simgesi için de not alındı (drAW2D yol haritası). Simge
+   değişince `public/img/app-icon.png`, `favicon.png` ve Android simgeleri
+   (`scripts/android-icons.sh`) yeniden üretilir.
+
+**Uygulandı (2026-10-25):**
+- **Standart görünüm:** Kamera aynı yönden bakar; uzaklığı ekranın en/boy oranından
+  hesaplanır (`CameraState.standardDistance`). Yatay ekranda bugünkü uzaklık
+  (`STANDARD_POSITION`) kalır; dikey ekranda kamera, aynı bölge (merkezden 18 birim)
+  yatayda da sığacak kadar geri çekilir. Açılışta ekranın boyutu bilinince standart
+  görünüm yeniden kurulur.
+- **Klavye:** Bütün sekmeler en uzun sekme kadar (beş satır) sabit yüksekliktedir; az
+  satırlı sekmelerin tuşları uzar, komutlar sayfanın içinde kayar. Dar ekranda klavye
+  açıkken alt panel uzar (`clamp(42%, 440px, 80%)`), giriş alanı ve bir kartın üstü
+  klavyenin üstünde kalır. Aynı değişiklik drAW2D'de de yapıldı.
+- **Logo taslakları (karar bekleniyor):** Kullanıcının masaüstünde, projedeki simgeye
+  dokunulmadı. A: tel kafes küp, içinde noktalar ve doğru parçalarıyla çizilmiş AW.
+  B: dolu mavi küp, ön yüzünde AW. C (kullanıcının isteğiyle A'dan): AW küpün sol ön
+  dikey kenarından sağ arka dikey kenarına uzanan köşegen düzlemde, küpün yüzleri hafif
+  saydam renkli.
+

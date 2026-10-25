@@ -131,5 +131,27 @@ test('telefon: otomatik olarak düşük çizim çözünürlüğü ve küçük g�
     return { buffer: element.width, css: element.getBoundingClientRect().width }
   })
   expect(canvas.buffer / canvas.css).toBeCloseTo(1.5, 1)
+
+  // The standard view shows the same region as on a wide screen: points 17 units to the
+  // left and right of the center (across the view) are on the upright phone's screen.
+  for (const [x, z] of [[12, -12], [-12, 12]] as const) {
+    const point = await at(page, x, 0, z)
+    expect(point.x).toBeGreaterThan(0)
+    expect(point.x).toBeLessThan(390)
+  }
+
+  // The math keyboard keeps one height on every tab, and the input stays above it.
+  await page.locator('#btnCalc').click()
+  await page.locator('#giris').click()
+  await expect(page.locator('#mathKeyboard')).toBeVisible()
+  const heights: number[] = []
+  for (const tab of ['numbers', 'functions', 'letters', 'commands']) {
+    await page.locator(`#keyboardtab-${tab}`).click()
+    heights.push((await page.locator('#mathKeyboard').boundingBox())!.height)
+  }
+  expect(new Set(heights.map(Math.round)).size).toBe(1)
+  const input = (await page.locator('#giris').boundingBox())!
+  const keyboard = (await page.locator('#mathKeyboard').boundingBox())!
+  expect(input.y + input.height).toBeLessThanOrEqual(keyboard.y)
   expect(errors).toEqual([])
 })

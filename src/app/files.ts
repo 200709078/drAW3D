@@ -96,6 +96,12 @@ export async function openDocumentFile(): Promise<OpenedFile | null> {
   return file && { name: file.name, text: await file.text(), target: null }
 }
 
+/** A .drw3 file tapped in another app on Android (its content:// address). */
+export async function readHandedFile(uri: string): Promise<OpenedFile> {
+  const file = await DrawFiles.read({ uri })
+  return { name: file.name, text: file.text, target: { kind: 'android', uri: file.uri } }
+}
+
 /**
  * Save the document: into `target` when there is one and `saveAs` is off, otherwise to a
  * place the user picks (a download where the browser cannot ask). Null when cancelled.

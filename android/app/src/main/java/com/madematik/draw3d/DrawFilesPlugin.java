@@ -52,6 +52,21 @@ public class DrawFilesPlugin extends Plugin {
             cancelled(call);
             return;
         }
+        readDocument(call, uri);
+    }
+
+    /** Read a document another app handed over (a .drw3 file tapped in a file manager). */
+    @PluginMethod
+    public void read(PluginCall call) {
+        String uri = call.getString("uri");
+        if (uri == null) {
+            call.reject("Dosya yeri yok.");
+            return;
+        }
+        readDocument(call, Uri.parse(uri));
+    }
+
+    private void readDocument(PluginCall call, Uri uri) {
         try (InputStream input = getContext().getContentResolver().openInputStream(uri)) {
             if (input == null) throw new IllegalStateException("Dosya okunamadı.");
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();

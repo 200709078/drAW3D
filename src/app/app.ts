@@ -39,7 +39,8 @@ import type { ToolAction } from '../ui/tool-registry'
 import { CameraState, type ScreenPoint } from './camera-state'
 import { hitTolerance, nearestPoint, type PointerKind } from './hit-test'
 import {
-  canSavePdf, exportFile, openDocumentFile, printHtml, saveDocumentFile, savePdf, type FileTarget,
+  canSavePdf, exportFile, openDocumentFile, printHtml, readHandedFile, saveDocumentFile, savePdf,
+  type FileTarget, type OpenedFile,
 } from './files'
 import { bindAndroid } from './native'
 import { applyStyle, describeCard, editText, styleSpec, type CardContext } from './object-cards'
@@ -547,7 +548,21 @@ export function startApp(): void {
       showToast('Aç', 'Dosya açılamadı.')
       return
     }
-    if (!opened) return
+    if (opened) showOpened(opened)
+  }
+
+  /** A .drw3 file tapped in another app (Android), at start or while running. */
+  async function openHandedFile(uri: string): Promise<void> {
+    settle()
+    try {
+      showOpened(await readHandedFile(uri))
+    } catch {
+      showToast('Aç', 'Dosya açılamadı.')
+    }
+  }
+
+  /** Put an opened file's document in place (one undoable step) and say so. */
+  function showOpened(opened: OpenedFile): void {
     const parsed = parseDocument(opened.text)
     if (!parsed.ok) {
       showToast('Aç', parsed.error)
@@ -904,6 +919,8 @@ export function startApp(): void {
   if (narrow.matches) sidePanel.setHidden(true)
   alignViewport()
   resize()
+  // The standard view's distance depends on the screen's shape, known only now.
+  camera.setView('standard')
 
   window.drAW3DApp = {
     objects: () => structuredClone(doc.objects as GeometryObject[]),
@@ -926,7 +943,7 @@ export function startApp(): void {
   restoreAutosave()
   refresh()
   suggestBoard()
-  bindAndroid({ back: closeSomething, pause: autosave })
+  bindAndroid({ back: closeSomething, pause: autosave, openFile: uri => void openHandedFile(uri) })
 
   /** Android's back button: close one open thing, innermost first. */
   function closeSomething(): boolean {

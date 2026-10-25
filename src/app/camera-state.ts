@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import type { CameraPose } from '../document/file-format'
-import { normalize, sub, vec, type Ray, type Vec3 } from '../geometry/vec3'
+import { length, normalize, sub, vec, type Ray, type Vec3 } from '../geometry/vec3'
 
 export const STANDARD_POSITION = vec(18, 15, 18)
 export const STANDARD_TARGET = vec(0, 0, 0)
@@ -124,14 +124,27 @@ export class CameraState implements Projector {
     this.finish()
   }
 
+  /**
+   * The standard view shows the same region on every screen shape: from STANDARD_POSITION
+   * on a landscape screen, from farther away on a portrait one (a phone held upright),
+   * where the narrow horizontal view would otherwise crop the scene.
+   */
+  private standardDistance(): number {
+    const vertical = THREE.MathUtils.degToRad(FOV / 2)
+    const horizontal = Math.atan(Math.tan(vertical) * this.width / this.height)
+    const radius = length(sub(STANDARD_POSITION, STANDARD_TARGET)) * Math.sin(vertical)
+    return radius / Math.sin(Math.min(vertical, horizontal))
+  }
+
   setView(view: ViewDirection): void {
     this.settle()
     if (view === 'standard') {
       this.controls.target.set(STANDARD_TARGET.x, STANDARD_TARGET.y, STANDARD_TARGET.z)
-      const standard = new THREE.Vector3(STANDARD_POSITION.x, STANDARD_POSITION.y, STANDARD_POSITION.z)
-      this.camera.position.copy(standard)
+      const direction = normalize(sub(STANDARD_POSITION, STANDARD_TARGET))!
+      const distance = this.standardDistance()
+      this.camera.position.copy(this.controls.target).addScaledVector(new THREE.Vector3(direction.x, direction.y, direction.z), distance)
       if (this.isOrthographic) {
-        this.halfHeight = standard.distanceTo(this.controls.target) * Math.tan(THREE.MathUtils.degToRad(FOV / 2))
+        this.halfHeight = distance * Math.tan(THREE.MathUtils.degToRad(FOV / 2))
         this.orthographic.zoom = 1
         this.updateFrustum()
       }

@@ -41,6 +41,7 @@ import { hitTolerance, nearestPoint, type PointerKind } from './hit-test'
 import {
   canSavePdf, exportFile, openDocumentFile, printHtml, saveDocumentFile, savePdf, type FileTarget,
 } from './files'
+import { bindAndroid } from './native'
 import { applyStyle, describeCard, editText, styleSpec, type CardContext } from './object-cards'
 import { SelectController } from './select-tool'
 import { ToolController } from './tools'
@@ -500,6 +501,10 @@ export function startApp(): void {
     if (autosaveTimer === null) autosaveTimer = window.setTimeout(autosave, AUTOSAVE_DELAY)
   }
   window.addEventListener('pagehide', autosave)
+  // Phones close background apps without pagehide; save when the page is left.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') autosave()
+  })
 
   /** Replace the document with a file's objects, as one undoable step; false if they do not resolve. */
   function loadDocument(file: DocumentFile): boolean {
@@ -650,7 +655,7 @@ export function startApp(): void {
     },
     onNetPrint(tabs) {
       const page = netPage(tabs)
-      if (page) printHtml(printPage(page.svg, page.title))
+      if (page) printHtml(printPage(page.svg, page.title), page.name)
     },
     ...(canSavePdf() ? {
       async onNetPdf(tabs: boolean) {
@@ -703,7 +708,7 @@ export function startApp(): void {
     },
   })
   button('helpMenuButton').addEventListener('click', () => help.open())
-  createMathKeyboard(commandInput, document.getElementById('rightWrapper')!, button('keyboardToggle'))
+  const mathKeyboard = createMathKeyboard(commandInput, document.getElementById('rightWrapper')!, button('keyboardToggle'))
   // Template suggestions handle their keys before the input submits.
   const templates = bindCommandTemplates(commandInput)
   bindCommandInput(commandInput, submit, () => {
@@ -921,6 +926,35 @@ export function startApp(): void {
   restoreAutosave()
   refresh()
   suggestBoard()
+  bindAndroid({ back: closeSomething, pause: autosave })
+
+  /** Android's back button: close one open thing, innermost first. */
+  function closeSomething(): boolean {
+    if (document.querySelector('#mainToolbar [aria-expanded="true"]')) {
+      // Every toolbar menu closes on Escape.
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      return true
+    }
+    if (document.getElementById('help-popup')?.style.display === 'flex') {
+      help.close()
+      return true
+    }
+    if (mathKeyboard.isOpen) {
+      mathKeyboard.setOpen(false)
+      return true
+    }
+    if (select.cancelDrag() || tools.action !== 'select') {
+      tools.cancel()
+      toolbar.select('select', { showToast: false })
+      return true
+    }
+    if (narrow.matches && !sidePanel.isHidden) {
+      sidePanel.setHidden(true)
+      refresh()
+      return true
+    }
+    return false
+  }
 
   /** A large touch screen may be a smart board; say once where its setting is. */
   function suggestBoard(): void {

@@ -21,7 +21,7 @@ aldı; aynı gün Y1, Y2 ve Y3'ü, ardından Y4 ve Y5'i, sonra Y6–Y9'u istedi 
 8. Açınımı gerçek ölçekte yazdırma ve PDF olarak dışa aktarma (Y7). **Uygulandı (2026-10-24).**
 9. Kesit (Y8). **Uygulandı (2026-10-24).**
 10. Yeni cisimler ve açınım seçenekleri (Y9). **Uygulandı (2026-10-24).**
-11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25).
+11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25). **Android uygulandı (2026-10-25)**; imza anahtarı ve telefonda deneme bekleniyor. iOS beklemede.
 12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor.
 
 ## Altyapı
@@ -105,6 +105,24 @@ Capacitor ile aynı `dist/` çıktısı paketlenir. Mobil WebView'da WebGL, bell
   bellek, ısınma ve pil; en düşük Android sürümü (minSdk) bu denemeye göre seçilir.
 
 ## Özellikler
+
+**Android uygulandı (2026-10-25):** Capacitor 8 projesi `android/` depoda. Yukarıdaki
+tasarım notları uygulandı: kimlik `com.madematik.draw3d`, sürüm adı ve kodu
+`package.json`'dan (0.1.1 → 101), imza ortam değişkenlerinden (anahtar depoya girmez),
+Android 7.0+ (minSdk 24). Dosya açma/kaydetme Android'in belge seçicileriyle (izin
+istemez; açılan dosyaya Kaydet aynı dosyaya yazar), PNG/SVG kaydı aynı yolla, açınım
+Android'in yazdırma servisiyle yazdırılır (oradan PDF de kaydedilir) — küçük bir yerel
+eklenti (`DrawFilesPlugin.java`). Geri tuşu önce açık menü/pencere/aracı kapatır, sonra
+uygulamayı arka plana alır; arka plana geçerken belge otomatik kaydedilir. Simgeler ve
+açılış ekranı `public/img/app-icon.png`'den (`scripts/android-icons.sh`). Sürüm iş
+akışında Android işi APK'yı üretip imzasını denetler, GitHub sürümüne
+`drAW3D-android.apk` olarak koyar; `SHA256SUMS.txt` ve sürüm notu APK'yı ve kurulum
+adımını içerir. Yerelde test anahtarıyla imzalı APK derlendi ve denetlendi.
+
+**Bekleyen (A2):** Kullanıcının imza anahtarını oluşturup GitHub secret'larına eklemesi;
+APK'nın gerçek telefonda denenmesi (WebGL, dosya seçici, yazdırma, geri tuşu, ısınma);
+`.drw3` dosyalarının uygulamayla açılması (intent filter) sonraki adım; AAB/Play Store
+sonra.
 
 ### Y1. Nesne kartları ve görünüm ayarları
 

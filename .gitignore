@@ -29,3 +29,8 @@ playwright-report/
 
 # Local AI / coding-agent instruction files
 [Aa][Gg][Ee][Nn][Tt][Ss]*.md
+
+# Android imza anahtarı asla depoya girmez (bkz. docs/yol-haritasi.md A2)
+*.jks
+*.keystore
+*.p12

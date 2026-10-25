@@ -1,7 +1,8 @@
 import { FILE_EXTENSION } from '../document/file-format'
+import { DrawFiles, isAndroidApp } from './native'
 
-/** Where the open document lives: a desktop path or a browser file handle. */
-export type FileTarget = { kind: 'desktop'; path: string } | { kind: 'web'; handle: SaveHandle }
+/** Where the open document lives: a desktop path, an Android document or a browser file handle. */
+export type FileTarget = { kind: 'desktop'; path: string } | { kind: 'android'; uri: string } | { kind: 'web'; handle: SaveHandle }
 
 export interface OpenedFile {
   name: string
@@ -37,6 +38,14 @@ const desktop = () => window.drAW3DDesktop?.files
 
 const cancelled = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
+async function base64(data: Blob): Promise<string> {
+  const bytes = new Uint8Array(await data.arrayBuffer())
+  let binary = ''
+  // In slices: one call with every byte would overflow the argument list.
+  for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
+  return btoa(binary)
+}
+
 function download(data: Blob, name: string): void {
   const url = URL.createObjectURL(data)
   const link = document.createElement('a')
@@ -62,6 +71,10 @@ function chooseFile(accept: string): Promise<File | null> {
 }
 
 export async function openDocumentFile(): Promise<OpenedFile | null> {
+  if (isAndroidApp()) {
+    const opened = await DrawFiles.open()
+    return 'cancelled' in opened ? null : { name: opened.name, text: opened.text, target: { kind: 'android', uri: opened.uri } }
+  }
   const files = desktop()
   if (files) {
     const opened = await files.open()
@@ -89,6 +102,11 @@ export async function openDocumentFile(): Promise<OpenedFile | null> {
  */
 export async function saveDocumentFile(text: string, name: string, target: FileTarget | null, saveAs: boolean):
   Promise<{ name: string; target: FileTarget | null } | null> {
+  if (isAndroidApp()) {
+    const uri = !saveAs && target?.kind === 'android' ? target.uri : undefined
+    const saved = await DrawFiles.save({ data: text, name, mimeType: 'application/json', ...(uri ? { uri } : {}) })
+    return 'cancelled' in saved ? null : { name: saved.name, target: { kind: 'android', uri: saved.uri } }
+  }
   const files = desktop()
   if (files) {
     const saved = await files.save(text, !saveAs && target?.kind === 'desktop' ? target.path : null, name)
@@ -114,6 +132,12 @@ export async function saveDocumentFile(text: string, name: string, target: FileT
 
 /** Save an export (PNG, SVG); the saved file's name, or null when cancelled. */
 export async function exportFile(data: Blob, name: string, kind: 'png' | 'svg'): Promise<string | null> {
+  if (isAndroidApp()) {
+    const saved = kind === 'svg'
+      ? await DrawFiles.save({ data: await data.text(), name, mimeType: 'image/svg+xml' })
+      : await DrawFiles.save({ data: await base64(data), base64: true, name, mimeType: 'image/png' })
+    return 'cancelled' in saved ? null : saved.name
+  }
   const files = desktop()
   if (files) {
     return files.exportFile(kind === 'svg' ? await data.text() : new Uint8Array(await data.arrayBuffer()), name, kind)
@@ -145,7 +169,12 @@ export function savePdf(html: string, name: string): Promise<string | null> {
 }
 
 /** Print a page through a hidden frame; the print dialog also offers saving as PDF. */
-export function printHtml(html: string): void {
+export function printHtml(html: string, name: string): void {
+  // Android's WebView cannot print itself; the app's print service can (and saves PDFs).
+  if (isAndroidApp()) {
+    void DrawFiles.print({ html, name })
+    return
+  }
   const frame = document.createElement('iframe')
   frame.className = 'print-frame'
   frame.setAttribute('aria-hidden', 'true')

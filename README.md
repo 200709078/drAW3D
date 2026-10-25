@@ -10,11 +10,12 @@ made by **mADEMatik** — [madematik.com](https://www.madematik.com)
 
 ## İndir
 
-Masaüstü uygulamasının son sürümü (bağlantılar her zaman en yeni sürümü indirir):
+Uygulamanın son sürümü (bağlantılar her zaman en yeni sürümü indirir):
 
 - **Windows 10/11 (64-bit):** [drAW3D-win-x64.exe](https://github.com/200709078/drAW3D/releases/latest/download/drAW3D-win-x64.exe)
 - **Linux DEB (Pardus, Debian, Ubuntu):** [drAW3D-linux-amd64.deb](https://github.com/200709078/drAW3D/releases/latest/download/drAW3D-linux-amd64.deb)
 - **Linux AppImage:** [drAW3D-linux-x86_64.AppImage](https://github.com/200709078/drAW3D/releases/latest/download/drAW3D-linux-x86_64.AppImage)
+- **Android 7.0 ve üstü (telefon, tablet):** [drAW3D-android.apk](https://github.com/200709078/drAW3D/releases/latest/download/drAW3D-android.apk) — Play Store dışından kurulur; Android bir kez "bilinmeyen uygulamaları yükleme" izni ister.
 
 Bütün sürümler, kurulum adımları ve SHA-256 değerleri: [Releases](https://github.com/200709078/drAW3D/releases).
 
@@ -76,6 +77,7 @@ npm run electron:dev     # Electron, geliştirme sunucusuyla
 npm run test:electron    # derler, uygulamayı file:// ile açıp denetler (grafik oturum gerekir)
 npm run dist:linux       # AppImage + deb
 npm run dist:win         # NSIS kurulum dosyası
+npm run android:apk      # Android APK (JDK 21 ve Android SDK gerekir; imza için DRAW3D_KEYSTORE* ortam değişkenleri)
 ```
 
 Sürüm paketleri GitHub Actions ile üretilir (`.github/workflows/release.yml`): Linux paketleri
@@ -99,6 +101,7 @@ src/
                    yardım, klavye, toast
   styles/          stiller (toolbar.css ve titlebar.css drAW2D ile ortak)
 electron/          masaüstü kabuğu (main + preload)
+android/           Android projesi (Capacitor; dosya ve yazdırma eklentisi, simgeler)
 scripts/           Electron geliştirme, başlatma ve test betikleri
 tests/             Playwright testleri
 docs/              geçiş planı, yol haritası, özellik envanteri

@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     watch: {
-      ignored: ['**/dist-electron/**', '**/release/**'],
+      ignored: ['**/dist-electron/**', '**/release/**', '**/android/**'],
     },
   },
   preview: {

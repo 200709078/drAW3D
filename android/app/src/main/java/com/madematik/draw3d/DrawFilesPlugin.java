@@ -67,18 +67,14 @@ public class DrawFilesPlugin extends Plugin {
         }
     }
 
-    /** Write to `uri` when given (the open file), otherwise ask where with a save dialog. */
+    /**
+     * Ask where a new file goes. Only the name and type travel with this call: Android keeps a
+     * pending call in the activity's saved state while the picker is open, and a large
+     * payload there (a PNG) crashes the app, the saved state being limited to about 1 MB.
+     * The contents follow with `write`.
+     */
     @PluginMethod
-    public void save(PluginCall call) {
-        String uri = call.getString("uri");
-        if (uri != null) {
-            try {
-                write(call, Uri.parse(uri));
-                return;
-            } catch (Exception ignored) {
-                // The permission may be gone; ask for a place instead.
-            }
-        }
+    public void create(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType(call.getString("mimeType", "application/octet-stream"));
@@ -94,27 +90,38 @@ public class DrawFilesPlugin extends Plugin {
             cancelled(call);
             return;
         }
+        JSObject place = new JSObject();
+        place.put("uri", uri.toString());
+        place.put("name", displayName(uri));
+        call.resolve(place);
+    }
+
+    /** Write the contents into a document the user picked (or opened) before. */
+    @PluginMethod
+    public void write(PluginCall call) {
+        String uri = call.getString("uri");
+        if (uri == null) {
+            call.reject("Dosya yeri yok.");
+            return;
+        }
         try {
-            write(call, uri);
+            Uri target = Uri.parse(uri);
+            String data = call.getString("data", "");
+            byte[] bytes = Boolean.TRUE.equals(call.getBoolean("base64", false))
+                ? Base64.decode(data, Base64.DEFAULT)
+                : data.getBytes(StandardCharsets.UTF_8);
+            // "wt" truncates: a shorter document must not keep the old file's tail.
+            try (OutputStream output = getContext().getContentResolver().openOutputStream(target, "wt")) {
+                if (output == null) throw new IllegalStateException("Dosya yazılamadı.");
+                output.write(bytes);
+            }
+            JSObject saved = new JSObject();
+            saved.put("uri", uri);
+            saved.put("name", displayName(target));
+            call.resolve(saved);
         } catch (Exception error) {
             call.reject("Dosya kaydedilemedi.", error);
         }
-    }
-
-    private void write(PluginCall call, Uri uri) throws Exception {
-        String data = call.getString("data", "");
-        byte[] bytes = Boolean.TRUE.equals(call.getBoolean("base64", false))
-            ? Base64.decode(data, Base64.DEFAULT)
-            : data.getBytes(StandardCharsets.UTF_8);
-        // "wt" truncates: a shorter document must not keep the old file's tail.
-        try (OutputStream output = getContext().getContentResolver().openOutputStream(uri, "wt")) {
-            if (output == null) throw new IllegalStateException("Dosya yazılamadı.");
-            output.write(bytes);
-        }
-        JSObject saved = new JSObject();
-        saved.put("uri", uri.toString());
-        saved.put("name", displayName(uri));
-        call.resolve(saved);
     }
 
     /** Print a page on A4 without margins; Android's print dialog also saves it as PDF. */

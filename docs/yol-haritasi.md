@@ -23,6 +23,11 @@ aldı; aynı gün Y1, Y2 ve Y3'ü, ardından Y4 ve Y5'i, sonra Y6–Y9'u istedi 
 10. Yeni cisimler ve açınım seçenekleri (Y9). **Uygulandı (2026-10-24).**
 11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25). **Android uygulandı (2026-10-25)**; imza anahtarı ve telefonda deneme bekleniyor. iOS beklemede.
 12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor.
+13. Dar ekranda araç çubuğunun düzeni (Y11) — not, acil değil.
+
+**Telefonda deneme (2026-10-25, kullanıcı):** SVG kaydı çalışıyor. Belge `.drw3.json`
+adıyla kaydediliyordu ve PNG kaydı uygulamayı çökertiyordu (dosya boş kalıyordu).
+İkisi de düzeltildi, bkz. A2.
 
 ## Altyapı
 
@@ -104,8 +109,6 @@ Capacitor ile aynı `dist/` çıktısı paketlenir. Mobil WebView'da WebGL, bell
 - **Denenecekler:** Gerçek cihazlarda (düşük ve orta seviye telefon, tablet) WebGL2,
   bellek, ısınma ve pil; en düşük Android sürümü (minSdk) bu denemeye göre seçilir.
 
-## Özellikler
-
 **Android uygulandı (2026-10-25):** Capacitor 8 projesi `android/` depoda. Yukarıdaki
 tasarım notları uygulandı: kimlik `com.madematik.draw3d`, sürüm adı ve kodu
 `package.json`'dan (0.1.1 → 101), imza ortam değişkenlerinden (anahtar depoya girmez),
@@ -119,10 +122,26 @@ akışında Android işi APK'yı üretip imzasını denetler, GitHub sürümüne
 `drAW3D-android.apk` olarak koyar; `SHA256SUMS.txt` ve sürüm notu APK'yı ve kurulum
 adımını içerir. Yerelde test anahtarıyla imzalı APK derlendi ve denetlendi.
 
-**Bekleyen (A2):** Kullanıcının imza anahtarını oluşturup GitHub secret'larına eklemesi;
-APK'nın gerçek telefonda denenmesi (WebGL, dosya seçici, yazdırma, geri tuşu, ısınma);
-`.drw3` dosyalarının uygulamayla açılması (intent filter) sonraki adım; AAB/Play Store
-sonra.
+**İmza anahtarı (2026-10-25):** Kullanıcı anahtarı oluşturdu, yedekledi ve GitHub
+secret'larına ekledi; yayımlamadan yapılan derlemede APK bu anahtarla imzalandı
+(`CN=mADEMatik`, sertifika SHA-256 `84f78df0…b856f1fa96`).
+
+**İlk telefon denemesi (2026-10-25):** SVG kaydı çalıştı. İki hata bulundu ve
+düzeltildi:
+- Belge `ad.drw3.json` olarak kaydediliyordu: türü `application/json` verilince Android
+  adın sonuna `.json` ekliyor. Belge artık `application/octet-stream` türüyle
+  kaydedilir, ad `.drw3` olarak kalır.
+- PNG kaydı uygulamayı çökertiyor, dosya boş kalıyordu: seçici açıkken Android bekleyen
+  eklenti çağrısını etkinliğin saklanan durumuna koyar; birkaç MB'lık PNG verisi bu
+  durumun ~1 MB sınırını aşınca uygulama kapanıyordu. Kaydetme artık iki adımdır:
+  önce yalnız ad ve türle yer sorulur (`create`), veri yer seçildikten sonra ayrı
+  çağrıyla yazılır (`write`).
+
+**Bekleyen (A2):** Düzeltmelerin telefonda yeniden denenmesi (dosya, PNG, yazdırma,
+geri tuşu, ısınma); `.drw3` dosyalarının uygulamayla açılması (intent filter) sonraki
+adım; AAB/Play Store sonra.
+
+## Özellikler
 
 ### Y1. Nesne kartları ve görünüm ayarları
 
@@ -388,3 +407,13 @@ Profiller `rendering/display.ts`'te:
   uygulaması önerilir.
 - **Bekleyen:** Telefon (ısınma, pil, okunabilirlik) ve akıllı tahta (uzaktan okunurluk,
   dokunma) gerçek cihazda denenmedi; değerler denemeye göre ayarlanacak.
+
+### Y11. Dar ekranda araç çubuğu
+
+**Kullanıcı notu (2026-10-25, telefonda deneme, acil değil):** Henüz kodlanmayacak.
+
+- Üstteki işlem düğmeleri (dosya, geri al/yinele, sil, gizle, görünüm, yardım vb.) dar
+  ekranda tek satırda, yana kaydırılarak duruyor. İki satır ya da bir menü (örneğin
+  "⋯" düğmesinin altında toplanan işlemler) daha iyi olabilir.
+- Alt paneli açıp kapatan düğmenin üst çubukta olması garip duruyor. Düğme panelin
+  kendi üzerinde (örneğin panelin tutamacında) ya da başka bir yerde olmalı.

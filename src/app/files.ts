@@ -1,5 +1,5 @@
 import { FILE_EXTENSION } from '../document/file-format'
-import { DrawFiles, isAndroidApp } from './native'
+import { DrawFiles, isAndroidApp, saveOnAndroid } from './native'
 
 /** Where the open document lives: a desktop path, an Android document or a browser file handle. */
 export type FileTarget = { kind: 'desktop'; path: string } | { kind: 'android'; uri: string } | { kind: 'web'; handle: SaveHandle }
@@ -104,8 +104,9 @@ export async function saveDocumentFile(text: string, name: string, target: FileT
   Promise<{ name: string; target: FileTarget | null } | null> {
   if (isAndroidApp()) {
     const uri = !saveAs && target?.kind === 'android' ? target.uri : undefined
-    const saved = await DrawFiles.save({ data: text, name, mimeType: 'application/json', ...(uri ? { uri } : {}) })
-    return 'cancelled' in saved ? null : { name: saved.name, target: { kind: 'android', uri: saved.uri } }
+    // A typed (JSON) document would get ".json" appended by Android: name.drw3.json.
+    const saved = await saveOnAndroid({ data: text, name, mimeType: 'application/octet-stream', ...(uri ? { uri } : {}) })
+    return saved && { name: saved.name, target: { kind: 'android', uri: saved.uri } }
   }
   const files = desktop()
   if (files) {
@@ -134,9 +135,9 @@ export async function saveDocumentFile(text: string, name: string, target: FileT
 export async function exportFile(data: Blob, name: string, kind: 'png' | 'svg'): Promise<string | null> {
   if (isAndroidApp()) {
     const saved = kind === 'svg'
-      ? await DrawFiles.save({ data: await data.text(), name, mimeType: 'image/svg+xml' })
-      : await DrawFiles.save({ data: await base64(data), base64: true, name, mimeType: 'image/png' })
-    return 'cancelled' in saved ? null : saved.name
+      ? await saveOnAndroid({ data: await data.text(), name, mimeType: 'image/svg+xml' })
+      : await saveOnAndroid({ data: await base64(data), base64: true, name, mimeType: 'image/png' })
+    return saved?.name ?? null
   }
   const files = desktop()
   if (files) {

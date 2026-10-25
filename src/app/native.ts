@@ -4,12 +4,31 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 /** The Android app's file and print plugin (android/…/DrawFilesPlugin.java). */
 interface DrawFilesPlugin {
   open(): Promise<{ uri: string; name: string; text: string } | { cancelled: true }>
-  save(options: { data: string; base64?: boolean; name: string; mimeType: string; uri?: string }):
-    Promise<{ uri: string; name: string } | { cancelled: true }>
+  /** Ask where a new file goes (name and type only). */
+  create(options: { name: string; mimeType: string }): Promise<{ uri: string; name: string } | { cancelled: true }>
+  write(options: { uri: string; data: string; base64?: boolean }): Promise<{ uri: string; name: string }>
   print(options: { html: string; name: string }): Promise<void>
 }
 
 export const DrawFiles = registerPlugin<DrawFilesPlugin>('DrawFiles')
+
+/**
+ * Save on Android: into `uri` when given (the open document), else where the user picks.
+ * The place is asked first and the contents written after, so the picker never holds them.
+ */
+export async function saveOnAndroid(options: { data: string; base64?: boolean; name: string; mimeType: string; uri?: string }):
+  Promise<{ uri: string; name: string } | null> {
+  const contents = { data: options.data, ...(options.base64 ? { base64: true } : {}) }
+  if (options.uri) {
+    try {
+      return await DrawFiles.write({ uri: options.uri, ...contents })
+    } catch {
+      // The permission may be gone (file moved, app reinstalled): ask for a place instead.
+    }
+  }
+  const place = await DrawFiles.create({ name: options.name, mimeType: options.mimeType })
+  return 'cancelled' in place ? null : DrawFiles.write({ uri: place.uri, ...contents })
+}
 
 /** Running inside the Android (Capacitor) app, not in a browser or Electron. */
 export function isAndroidApp(): boolean {

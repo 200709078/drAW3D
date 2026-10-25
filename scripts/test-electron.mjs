@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
+import { mkdtemp, rm } from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import { _electron as electron } from '@playwright/test'
 
 const executablePath = process.env.DRAW3D_ELECTRON_EXECUTABLE
-const launchEnvironment = { ...process.env, DRAW3D_DEV_SERVER_URL: '' }
+// A fresh profile: no autosave or settings from earlier runs, the user's own left alone.
+const userData = await mkdtemp(path.join(os.tmpdir(), 'draw3d-test-'))
+const launchEnvironment = { ...process.env, DRAW3D_DEV_SERVER_URL: '', DRAW3D_USER_DATA: userData }
 delete launchEnvironment.ELECTRON_RUN_AS_NODE
 const application = await electron.launch({
   ...(executablePath ? { executablePath, args: [] } : { args: ['.'] }),
@@ -101,4 +105,5 @@ try {
   console.log('Electron kontrolü geçti: file:// açılış, başlık çubuğu, WebGL, prizma, komut girişi ve kart, araç çubuğu, varlıklar ve renderer yalıtımı.')
 } finally {
   await application.close()
+  await rm(userData, { recursive: true, force: true })
 }

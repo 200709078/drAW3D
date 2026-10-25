@@ -1,4 +1,5 @@
 import type { ViewDirection } from '../app/camera-state'
+import { DISPLAY_MODES, isDisplayMode, type DisplayMode } from '../rendering/display'
 import { DEFAULT_VIEW_OPTIONS, type LabelMode, type ViewOptions } from '../rendering/view-options'
 
 const STORAGE_KEY = 'drAW3D.view'
@@ -20,6 +21,7 @@ export function loadViewOptions(): ViewOptions {
       if (typeof stored[key] === typeof options[key]) (options as Record<string, unknown>)[key] = stored[key]
     }
     if (!LABEL_MODES.some(([mode]) => mode === options.labels)) options.labels = DEFAULT_VIEW_OPTIONS.labels
+    if (!isDisplayMode(options.display)) options.display = DEFAULT_VIEW_OPTIONS.display
     return options
   } catch {
     return { ...DEFAULT_VIEW_OPTIONS }
@@ -73,7 +75,9 @@ export function attachMenu(button: HTMLButtonElement, id: string, label: string)
 }
 
 /** The toolbar's view menu: camera directions and how the scene is drawn. */
-export function createViewMenu(button: HTMLButtonElement, initial: ViewOptions, handlers: ViewMenuHandlers): void {
+export function createViewMenu(
+  button: HTMLButtonElement, initial: ViewOptions, handlers: ViewMenuHandlers, detected: string,
+): void {
   const options = { ...initial }
   const { menu } = attachMenu(button, 'viewMenu', 'Görünüm')
 
@@ -135,4 +139,23 @@ export function createViewMenu(button: HTMLButtonElement, initial: ViewOptions, 
   labels.append('Etiketler', select)
   menu.append(labels)
   checkbox('viewCoordinates', 'Nokta koordinatları', 'coordinates')
+  heading('Ekran')
+  const display = document.createElement('label')
+  display.className = 'view-option view-select'
+  const screen = document.createElement('select')
+  screen.id = 'viewDisplay'
+  for (const [mode, caption] of DISPLAY_MODES) {
+    const option = document.createElement('option')
+    option.value = mode
+    // "Otomatik" says what it chose on this device.
+    option.textContent = mode === 'auto' ? `${caption} (${detected})` : caption
+    screen.append(option)
+  }
+  screen.value = options.display
+  screen.addEventListener('change', () => {
+    options.display = screen.value as DisplayMode
+    changed()
+  })
+  display.append('Ekran türü', screen)
+  menu.append(display)
 }

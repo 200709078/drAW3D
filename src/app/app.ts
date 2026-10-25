@@ -15,6 +15,7 @@ import { flatNet } from '../geometry/net-sheet'
 import { maxUnfoldAngle } from '../geometry/unfold'
 import { isPoint, isPolyhedron, isUnfoldable, type GeometryObject, type ObjectId } from '../geometry/types'
 import type { Vec3 } from '../geometry/vec3'
+import { DISPLAY_NAMES, detectDisplay, displayProfile, type DeviceInfo, type DisplayProfile } from '../rendering/display'
 import { createEnvironment, NEXT_GROUND_MODE, type GroundMode } from '../rendering/environment'
 import { createFrameRenderer } from '../rendering/frame-renderer'
 import { LabelLayer } from '../rendering/labels'
@@ -45,6 +46,7 @@ import { SelectController } from './select-tool'
 import { ToolController } from './tools'
 
 const AUTOSAVE_KEY = 'drAW3D.autosave'
+const BOARD_HINT_KEY = 'drAW3D.boardHint'
 const AUTOSAVE_DELAY = 1000
 
 const GROUND_TOGGLE: Readonly<Record<GroundMode, { icon: string; title: string }>> = {
@@ -64,12 +66,22 @@ declare global {
       groundMode(): GroundMode
       view(): ViewOptions & { cameraOrthographic: boolean }
       fileName(): string | null
+      display(): DisplayProfile
     }
   }
 }
 
 function pointerKind(event: PointerEvent): PointerKind {
   return event.pointerType === 'touch' || event.pointerType === 'pen' ? event.pointerType : 'mouse'
+}
+
+function deviceInfo(): DeviceInfo {
+  const { width, height } = window.screen
+  return {
+    coarse: window.matchMedia('(pointer: coarse)').matches,
+    shortSide: Math.min(width, height), longSide: Math.max(width, height),
+    devicePixelRatio: window.devicePixelRatio,
+  }
 }
 
 function button(id: string): HTMLButtonElement {
@@ -91,7 +103,8 @@ export function startApp(): void {
   let viewOptions: ViewOptions = loadViewOptions()
   camera.setOrthographic(viewOptions.orthographic)
   environment.setAxes(viewOptions.axes)
-  const sync = new SceneSync(scene, new MaterialCache(), labels)
+  const materials = new MaterialCache()
+  const sync = new SceneSync(scene, materials, labels)
   const doc = new GeometryDocument()
   const coarse = window.matchMedia('(pointer: coarse)').matches
   const narrow = window.matchMedia(NARROW_LAYOUT_QUERY)
@@ -99,23 +112,44 @@ export function startApp(): void {
   let shapes: ShapeMap = new Map()
   let groundMode: GroundMode = 'showBoth'
   let frames = 0
+  let profile = displayProfile(viewOptions.display, deviceInfo())
+
+  /**
+   * Apply the screen's profile (roadmap Y10): sharpness, shadows, edge width and the size of
+   * the interface. The interface grows with CSS zoom on the page; positions on the canvas
+   * stay in on-screen pixels, labels are placed in the page's layout pixels.
+   */
+  function applyDisplay(): void {
+    profile = displayProfile(viewOptions.display, deviceInfo())
+    document.documentElement.style.zoom = profile.uiScale === 1 ? '' : String(profile.uiScale)
+    document.documentElement.dataset.display = profile.kind
+    renderer!.setPixelRatio(profile.pixelRatio)
+    materials.setLineWidth(profile.edgeWidth / profile.pixelRatio)
+    environment.setShadowSize(profile.shadowMapSize)
+  }
+  applyDisplay()
+  const toLabel = (point: Vec3) => {
+    const screen = camera.toScreen(point)
+    return screen && { x: screen.x / profile.uiScale, y: screen.y / profile.uiScale }
+  }
+  const tolerance = (kind: PointerKind) => hitTolerance(kind) * profile.uiScale
 
   const frame = createFrameRenderer(() => {
     const moving = camera.update()
-    sync.arrows.scaleFor(point => camera.pixelSize(point))
+    sync.arrows.scaleFor(point => camera.pixelSize(point), profile.sceneScale)
     sync.setViewer(camera.eye())
     renderer.render(scene, camera.camera)
-    labels.layout(point => camera.toScreen(point))
-    axisLabels.layout(point => camera.toScreen(point))
+    labels.layout(toLabel)
+    axisLabels.layout(toLabel)
     frames++
     // Damping keeps the camera gliding after release; draw until it settles.
     if (moving) frame.request()
   })
   camera.controls.addEventListener('change', () => frame.request())
 
-  const select = new SelectController({ document: doc, projector: camera, shapes: () => shapes, refresh })
+  const select = new SelectController({ document: doc, projector: camera, shapes: () => shapes, refresh, tolerance })
   const tools = new ToolController({
-    document: doc, projector: camera, shapes: () => shapes, refresh,
+    document: doc, projector: camera, shapes: () => shapes, refresh, tolerance,
     selectPoint: id => { doc.activeId = id },
     finished: keepSelection => {
       if (!keepSelection) doc.activeId = null
@@ -317,7 +351,7 @@ export function startApp(): void {
   function refresh(): void {
     shapes = resolveAll(doc)
     sync.update({
-      objects: doc.objects, shapes, selectedId: doc.activeId, coarse,
+      objects: doc.objects, shapes, selectedId: doc.activeId, coarse, scale: profile.sceneScale,
       arrows: tools.action === 'select' ? select.arrows() : null, view: viewOptions,
     })
     sync.setPreview(tools.preview())
@@ -559,10 +593,10 @@ export function startApp(): void {
       if (!text || element.hidden || element.getClientRects().length === 0) continue
       const box = element.getBoundingClientRect()
       const style = getComputedStyle(element)
-      painter.font = `${style.fontWeight} ${parseFloat(style.fontSize) * ratio}px ${style.fontFamily}`
+      painter.font = `${style.fontWeight} ${parseFloat(style.fontSize) * profile.uiScale * ratio}px ${style.fontFamily}`
       const x = (box.left + box.width / 2 - area.left) * ratio
       const y = (box.top + box.height / 2 - area.top) * ratio
-      painter.lineWidth = 3 * ratio
+      painter.lineWidth = 3 * profile.uiScale * ratio
       painter.strokeStyle = '#ffffff'
       painter.strokeText(text, x, y)
       painter.fillStyle = style.color
@@ -723,12 +757,17 @@ export function startApp(): void {
       frame.request()
     },
     onChange(next) {
+      const display = next.display !== viewOptions.display
       viewOptions = next
       camera.setOrthographic(next.orthographic)
       environment.setAxes(next.axes)
+      if (display) {
+        applyDisplay()
+        resize()
+      }
       refresh()
     },
-  })
+  }, DISPLAY_NAMES[detectDisplay(deviceInfo()).kind])
 
   // Pointer input. The camera (OrbitControls) listens on the same canvas; a capture listener
   // runs first and decides whether one finger or the left button may turn the camera.
@@ -779,7 +818,7 @@ export function startApp(): void {
       return
     }
     if (event.pointerType === 'mouse' && pointers.size === 0) {
-      const hovered = nearestPoint(doc.objects, camera, spot, hitTolerance('mouse'))
+      const hovered = nearestPoint(doc.objects, camera, spot, tolerance('mouse'))
       canvas.style.cursor = hovered ? 'pointer' : ''
     }
   })
@@ -877,9 +916,23 @@ export function startApp(): void {
     groundMode: () => groundMode,
     view: () => ({ ...viewOptions, cameraOrthographic: camera.isOrthographic }),
     fileName: () => fileName,
+    display: () => ({ ...profile }),
   }
   restoreAutosave()
   refresh()
+  suggestBoard()
+
+  /** A large touch screen may be a smart board; say once where its setting is. */
+  function suggestBoard(): void {
+    if (viewOptions.display !== 'auto' || !detectDisplay(deviceInfo()).boardLikely) return
+    try {
+      if (localStorage.getItem(BOARD_HINT_KEY)) return
+      localStorage.setItem(BOARD_HINT_KEY, '1')
+    } catch {
+      return
+    }
+    showToast('Ekran', 'Akıllı tahtada daha büyük düğmeler ve kalın çizgiler için: Görünüm → Ekran türü → Akıllı tahta.')
+  }
 
   /** Reopen the last work of this browser; its history starts here. */
   function restoreAutosave(): void {

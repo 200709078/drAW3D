@@ -11,6 +11,10 @@ const iconPath = fileURLToPath(new URL(
   import.meta.url,
 ))
 
+// Checks run the unpackaged app with their own profile, so they never see or overwrite the
+// user's autosave and settings.
+if (!app.isPackaged && process.env.DRAW3D_USER_DATA) app.setPath('userData', process.env.DRAW3D_USER_DATA)
+
 // Without a usable GPU (old driver, blocklist, VM) WebGL falls back to SwiftShader instead
 // of failing. The window loads only the bundled app, never remote pages.
 app.commandLine.appendSwitch('enable-unsafe-swiftshader')

@@ -1,4 +1,5 @@
 import { isInternalPoint, type GeometryObject } from '../geometry/types'
+import type { DisplayMode } from './display'
 
 /** Which objects show their name when they have no label setting of their own. */
 export type LabelMode = 'none' | 'points' | 'all'
@@ -12,10 +13,12 @@ export interface ViewOptions {
   coordinates: boolean
   /** Edges of solids hidden behind faces are drawn dashed, as in textbooks. */
   hiddenEdges: boolean
+  /** The kind of screen: sharpness, shadows, sizes of the interface and the scene. */
+  display: DisplayMode
 }
 
 export const DEFAULT_VIEW_OPTIONS: Readonly<ViewOptions> = {
-  orthographic: false, axes: false, labels: 'points', coordinates: false, hiddenEdges: true,
+  orthographic: false, axes: false, labels: 'points', coordinates: false, hiddenEdges: true, display: 'auto',
 }
 
 /** Whether an object's name is drawn: its own setting, else the label mode. */

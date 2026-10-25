@@ -21,7 +21,8 @@ aldı; aynı gün Y1, Y2 ve Y3'ü, ardından Y4 ve Y5'i, sonra Y6–Y9'u istedi 
 8. Açınımı gerçek ölçekte yazdırma ve PDF olarak dışa aktarma (Y7). **Uygulandı (2026-10-24).**
 9. Kesit (Y8). **Uygulandı (2026-10-24).**
 10. Yeni cisimler ve açınım seçenekleri (Y9). **Uygulandı (2026-10-24).**
-11. Android/iOS paketleme (A2).
+11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25).
+12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor.
 
 ## Altyapı
 
@@ -43,10 +44,65 @@ Y1 ve Y2 için drAW2D modülleri aynı API ile kopyalanır.
 depoya taşınacak. O zamana kadar ortak modüller drAW2D'deki dosyaların aynı API'li
 kopyaları olarak kalır ve birlikte güncel tutulur.
 
+**Yine ertelendi (2026-10-25):** Kullanıcı tek depo/ortak paketi ertelemeye devam ediyor.
+Ortak kodların (matematik klavyesi, başlık çubuğu vb.) zamanla farklılaşması sorun
+değil; kopyaları birebir aynı tutmak zorunlu değildir, yararlı düzeltmeler diğer
+projeye aktarılır. Tek depoya geçişin bedeli: her depodaki
+`releases/latest/download/...` bağlantı düzeni bozulur, iş akışları ve etiketler
+yeniden düzenlenir. Sürüm iş akışı ve `release-assets.mjs` üç projede aynı kalır.
+
 ### A2. Android/iOS paketleme
 
 Capacitor ile aynı `dist/` çıktısı paketlenir. Mobil WebView'da WebGL, bellek ve
-ısınma kontrol edilir; piksel oranı ve gölgeler cihaza göre ayarlanır.
+ısınma kontrol edilir; piksel oranı ve gölgeler cihaza göre ayarlanır (bkz. Y10).
+
+**Kullanıcı kararları (2026-10-25):** Henüz kodlanmayacak, yalnız not alındı.
+
+1. **Android şimdilik yalnız GitHub Releases'te** yayımlanır, ama ileride Play Store'a
+   geçilebilecek şekilde tasarlanır.
+2. **iOS beklemede.** (iOS paketi yalnız macOS'ta derlenir; GitHub'dan dosya olarak
+   kurulamaz, App Store/TestFlight ve yıllık Apple Developer hesabı gerekir.)
+3. **Önce yalnız drAW3D'de denenir.** Eksik, fazla ve hatalı yönler görüldükten sonra
+   drAW ve drAW2D'ye eklenir. O zamana kadar drAW3D'nin `release.yml` ve
+   `release-assets.mjs` dosyaları diğer iki projedekinden bilerek farklı olur;
+   uygulanınca CLAUDE.md'deki "üç projede aynı dosya" kuralına bu geçici istisna yazılır.
+
+**Tasarım notları (Play Store'a geçişi kolaylaştıracak seçimler):**
+
+- **Uygulama kimliği** `com.madematik.draw3d` (Electron'daki `AppUserModelId` ile aynı).
+  Play Store'da yayımlandıktan sonra değiştirilemez; baştan böyle sabitlenir.
+- **Sürüm:** `versionName` `package.json`'dan, `versionCode` ondan türetilir
+  (ör. `major·10000 + minor·100 + patch`), hep artar. Tek sürüm kaynağı yine `package.json`.
+- **İmza (2026-10-25'te netleşti):** Tek bir imza anahtarı (keystore) oluşturulur: RSA
+  4096, en az 30 yıl geçerli (Play en az 25 yıl ister). Dosya ve parolaları GitHub
+  secrets'ta saklanır, kullanıcı ayrıca güvenli bir yedek tutar (kaybolursa GitHub
+  sürümü güncellenemez). Play Store'a geçerken Play App Signing'de Google'ın yeni anahtar
+  üretmesi seçilmez; bu anahtar Google'a **uygulama imza anahtarı** olarak verilir
+  (PEPK aracıyla şifreli). Böylece GitHub APK'sı ile Play sürümü aynı imzayı taşır,
+  kullanıcı silmeden (verisini kaybetmeden) Play'den güncelleme alır. Play'e yükleme
+  için ayrı bir **yükleme anahtarı** oluşturulur (Google'ın önerisi; kaybolursa Google
+  yeniler). Releases'teki APK'lar asıl anahtarla imzalanmaya devam eder.
+  Anahtar kullanıcının bilgisayarında (`keytool`) oluşturulur, yedeğini kullanıcı tutar
+  (kullanıcı onayı, 2026-10-25); depoya hiç girmez (`*.jks`, `*.keystore` `.gitignore`'a
+  eklenir), GitHub'a yalnız secret olarak (base64) yüklenir.
+- **Çıktılar:** Releases için imzalı `drAW3D-android.apk` (sürümsüz ad,
+  `releases/latest/download/drAW3D-android.apk` bağlantısı sabit kalır); `SHA256SUMS.txt`
+  ve Türkçe sürüm notları bu dosyayı da içerir. Play Store'un istediği AAB
+  (`bundleRelease`) aynı Gradle projesinden üretilebilir durumda tutulur, şimdilik
+  yayımlanmaz.
+- **Derleme:** Sürüm iş akışına `ubuntu-latest` üzerinde ayrı bir Android işi: JDK ve
+  Android SDK kurulur, `npm run build` → `npx cap sync android` → Gradle. Testler Linux
+  işindeki gibi önce çalışır; bir adım başarısızsa sürüm yayımlanmaz. Elle yükleme yok.
+- **Proje:** Capacitor'ın `android/` klasörü depoya girer (simgeler, açılış ekranı,
+  izinler orada ayarlanır). İnternet izni gerekmez; uygulama paketin içinden açılır.
+- **Platforma özel kod:** `app/files.ts` üçüncü platform olarak Android'i alır:
+  açma/kaydetme Capacitor Filesystem ve dosya seçiciyle, PNG/SVG/PDF paylaşım menüsüyle
+  (Share); yazdırma Android'in yazdırma servisiyle. `.drw3` dosyalarının uygulamayla
+  açılması (intent filter) sonraki adımdır.
+- **Android'e özgü davranış:** Geri tuşu önce açık menü/pencereyi kapatır, sonra
+  uygulamadan çıkar. Otomatik kayıt uygulama arka plana geçerken de yapılır.
+- **Denenecekler:** Gerçek cihazlarda (düşük ve orta seviye telefon, tablet) WebGL2,
+  bellek, ısınma ve pil; en düşük Android sürümü (minSdk) bu denemeye göre seçilir.
 
 ## Özellikler
 
@@ -265,7 +321,52 @@ açınımı yüz grafiğinin kapsayan ağaçlarının düzlemdeki biçimine gör
 bandı olarak açılır, üst kapak iç yaya teğet katlanır. Kartlarda ve yüzen denetimde
 ▶/⏸ düğmesi açınımı saniyede 60° açar (açıksa kapatır); bir oynatma tek geçmiş adımıdır.
 
-**Açık karar (2026-10-24, kullanıcı sorusu):** Küp ayrı bir araç mı olmalı, yoksa prizmaya
-mı dahil kalmalı? Şimdilik ayrı araç (Düzgün Çokyüzlüler grubunda) bırakıldı; kullanıcı
-isterse kaldırılır ve 11 açınım seçimi kare tabanlı, yüksekliği kenarına eşit prizmalara
-verilir.
+**Karar (2026-10-25, kullanıcı):** Küp ayrı araç olarak (Düzgün Çokyüzlüler grubunda)
+kalır. Prizma aracı da küple başlamaya devam eder; 11 açınım seçimi yalnız küp
+aracındaki cisimdedir.
+
+### Y10. Cihaza göre görüntü ayarları
+
+**Kullanıcı isteği (2026-10-25):** Görüntü ayarları telefon, akıllı tahta, PC ve web
+için ayrı ayrı uygun olmalı. Kullanıcıya göre PC ve web'de şu an sorun görünmüyor.
+Henüz kodlanmayacak, yalnız not alındı.
+
+- **Telefon/tablet:** Piksel oranı sınırı (şu an 2) ve gölgeler cihazın gücüne göre
+  düşürülür; kenar yumuşatma gerekirse kapanır. Sahne zaten yalnız değişince çizildiği
+  için ısınma çoğunlukla dokunma ve açınım oynatma sırasında olur; bunlar denenir.
+  Dar ekran düzeni ve dokunma toleransı (22 px) zaten var; küçük ekranda kart ve
+  menülerin sığması kontrol edilir.
+- **Akıllı tahta:** Büyük ekran, uzaktan bakılır, parmak ya da kalemle kullanılır.
+  Daha büyük düğmeler ve dokunma hedefleri, daha kalın çizgiler, daha büyük noktalar ve
+  etiketler gerekir. Tahta ayırt edilemediği için (çoğu Windows PC veya Android'dir)
+  Görünüm menüsünde seçilebilen bir "Tahta / sunum" ölçeği olur; dokunmatik büyük ekranda
+  öneri olarak sunulabilir.
+- **PC ve web:** Bugünkü ayarlar varsayılan kalır.
+- Seçim görünüm ayarı gibi cihazda (localStorage) saklanır, belgeye girmez.
+- Akıllı tahta ve telefonda gerçek cihazla denenmeden "bitti" denmez.
+
+**Uygulandı (2026-10-25):** Görünüm menüsünde "Ekran türü": Otomatik (bu cihazda neyi
+seçtiğini yazar), Bilgisayar, Telefon / tablet, Akıllı tahta; seçim cihazda saklanır.
+Profiller `rendering/display.ts`'te:
+
+| | Çizim çözünürlüğü | Gölge haritası | Arayüz | Nokta ve kalın çizgiler | Kenar çizgisi |
+|---|---|---|---|---|---|
+| Bilgisayar (bugünkü görünüm) | ekranın, en çok 2× | 2048 | 1× | 1× | 1 piksel |
+| Telefon / tablet | en çok 1,5× | 1024 | 1× | 1× | ~1 piksel |
+| Akıllı tahta | en çok 1,5× | 2048 | 1,4× | 1,6× | 2,5 piksel |
+
+- Otomatik: dokunmatik ve kısa kenarı 900 pikselden küçük ekran telefon/tablet, diğerleri
+  bilgisayar. Tahta ayırt edilemediği için hiçbir zaman kendiliğinden seçilmez; büyük
+  dokunmatik ekranda bir kez "Görünüm → Ekran türü → Akıllı tahta" önerisi gösterilir.
+- Kenarlar artık genişliği ayarlanabilen çizgilerle çizilir (Three.js `LineSegments2`,
+  `rendering/edge-lines.ts`): WebGL'in kendi çizgileri hep 1 piksel olduğu için tahtada
+  kalınlaştırılamıyordu. Bilgisayarda genişlik yine 1 çizim pikselidir.
+- Tahtada arayüz sayfanın CSS `zoom`'uyla büyür; tuval üzerindeki konumlar ekran
+  pikselinde kalır, etiketler buna göre yerleştirilir, dokunma toleransı da büyür. Yan
+  panelin genişliği ve sürüklenmesi büyütülmüş sayfada doğru çalışır (`side-panel.ts`,
+  drAW2D'deki kopyadan bu yüzden ayrıldı).
+- Bilinen sınır: CSS `zoom`'un tutarlı davranışı Chromium 128+ ve Firefox 126+ ister.
+  Masaüstü uygulaması kendi Chromium'unu taşır; çok eski tarayıcılı tahtalarda masaüstü
+  uygulaması önerilir.
+- **Bekleyen:** Telefon (ısınma, pil, okunabilirlik) ve akıllı tahta (uzaktan okunurluk,
+  dokunma) gerçek cihazda denenmedi; değerler denemeye göre ayarlanacak.

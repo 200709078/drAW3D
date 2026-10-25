@@ -33,10 +33,11 @@ export function createSidePanel(onToggle: () => void): SidePanel {
   const pages = { algebra: required<HTMLElement>('scrollWrapper'), tools: required<HTMLElement>('toolsPanel') }
 
   // In the column layout the toolbar ends at the panel's left edge; over a bottom
-  // sheet it spans the screen (CSS).
+  // sheet it spans the screen (CSS). Layout sizes (offsetWidth), not on-screen ones: a
+  // zoomed page (smart boards) would scale an on-screen size twice.
   const alignToolbar = () => {
     if (narrow.matches) toolbar.style.right = ''
-    else toolbar.style.right = wrapper.classList.contains('hide') ? '0px' : `${wrapper.getBoundingClientRect().width}px`
+    else toolbar.style.right = wrapper.classList.contains('hide') ? '0px' : `${wrapper.offsetWidth}px`
   }
 
   const panel: SidePanel = {
@@ -69,19 +70,20 @@ export function createSidePanel(onToggle: () => void): SidePanel {
     down.preventDefault()
     const sheet = narrow.matches
     const start = sheet ? down.clientY : down.clientX
-    const rect = wrapper.getBoundingClientRect()
-    const startSize = sheet ? rect.height : rect.width
+    // Pointer positions are on-screen pixels; sizes are set in layout pixels.
+    const zoom = wrapper.getBoundingClientRect().width / wrapper.offsetWidth || 1
+    const startSize = sheet ? wrapper.offsetHeight : wrapper.offsetWidth
     resizer.setPointerCapture(down.pointerId)
     wrapper.style.transition = 'none'
     toolbar.style.transition = 'none'
     const move = (event: PointerEvent) => {
       if (event.pointerId !== down.pointerId) return
-      const delta = (sheet ? event.clientY : event.clientX) - start
+      const delta = ((sheet ? event.clientY : event.clientX) - start) / zoom
       if (sheet) {
-        const maxHeight = window.innerHeight * MAX_SHEET_RATIO
+        const maxHeight = window.innerHeight / zoom * MAX_SHEET_RATIO
         wrapper.style.height = `${Math.max(MIN_SHEET_HEIGHT, Math.min(maxHeight, startSize - delta))}px`
       } else {
-        const maxWidth = Math.min(MAX_PANEL_WIDTH, window.innerWidth - CANVAS_RESERVE)
+        const maxWidth = Math.min(MAX_PANEL_WIDTH, window.innerWidth / zoom - CANVAS_RESERVE)
         wrapper.style.width = `${Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, startSize - delta))}px`
       }
       alignToolbar()

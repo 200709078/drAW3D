@@ -5,7 +5,9 @@ import type { LineStyle } from '../geometry/types'
 import { unfoldSolid, type Net } from '../geometry/unfold'
 import { polyhedronEdgeVisibility, roundOutline, type Viewer } from '../geometry/visibility'
 import { add, distance, lerp, scale, type Vec3 } from '../geometry/vec3'
-import { placeAlong, toThree, writePolygons, writePolyline, writeSegments } from './buffers'
+import type { LineMaterial } from 'three/addons/lines/LineMaterial.js'
+import { placeAlong, toThree, writePolygons } from './buffers'
+import { EdgeLines, type Segment } from './edge-lines'
 import type { MaterialCache } from './materials'
 
 export const EDGE_COLOR = '#000000'
@@ -51,6 +53,8 @@ export interface ViewStyle {
   opacity?: number
   faces?: boolean
   edges?: boolean
+  /** Screen's size factor for points and thick lines (smart boards draw them larger). */
+  scale?: number
 }
 
 export interface ObjectView {
@@ -63,7 +67,7 @@ function edgeColor(style: ViewStyle): string {
 }
 
 /** Edge material for a line style (thin lines). */
-function edgeMaterial(materials: MaterialCache, color: string, style: LineStyle | undefined, opacity = 1): THREE.Material {
+function edgeMaterial(materials: MaterialCache, color: string, style: LineStyle | undefined, opacity = 1): LineMaterial {
   if (style === 'dashed') return materials.dashed(color)
   if (style === 'dotted') return materials.dotted(color)
   return materials.line(color, opacity)
@@ -108,7 +112,7 @@ export class TubeView implements ObjectView {
   }
 
   update(from: Vec3, to: Vec3, style: ViewStyle, radius = LINE_RADIUS): void {
-    const thickness = radius * (style.size ?? 1)
+    const thickness = radius * (style.size ?? 1) * (style.scale ?? 1)
     const material = this.materials.solid(style.selected ? SELECTED_COLOR : style.color)
     const pattern = style.lineStyle ?? 'solid'
     this.tube.visible = pattern === 'solid'
@@ -151,7 +155,7 @@ export class TubeView implements ObjectView {
 export class PlaneView implements ObjectView {
   readonly root = new THREE.Group()
   private face = new THREE.Mesh(new THREE.BufferGeometry())
-  private outline = new THREE.LineLoop(new THREE.BufferGeometry())
+  private outline = new EdgeLines()
   constructor(private materials: MaterialCache) {
     this.root.add(this.face, this.outline)
   }
@@ -160,8 +164,7 @@ export class PlaneView implements ObjectView {
     const corner = (s: number, t: number) => add(shape.center, add(scale(shape.u, s * half), scale(shape.v, t * half)))
     const corners = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)]
     writePolygons(this.face.geometry, [corners])
-    writePolyline(this.outline.geometry, corners)
-    this.outline.computeLineDistances()
+    this.outline.setPolyline(corners, true)
     this.face.visible = style.faces !== false
     this.outline.visible = style.edges !== false || style.selected
     this.face.material = this.materials.face(style.color, style.opacity ?? PLANE_OPACITY)
@@ -171,7 +174,7 @@ export class PlaneView implements ObjectView {
   }
   dispose(): void {
     this.face.geometry.dispose()
-    this.outline.geometry.dispose()
+    this.outline.dispose()
   }
 }
 
@@ -186,7 +189,7 @@ export class AngleView implements ObjectView {
     this.root.add(this.arms[0].root, this.arms[1].root, this.arc, this.sector)
   }
   update(shape: AngleShape, style: ViewStyle): void {
-    const armStyle = { color: EDGE_COLOR, selected: style.selected, size: style.size ?? 1 }
+    const armStyle = { color: EDGE_COLOR, selected: style.selected, size: style.size ?? 1, scale: style.scale ?? 1 }
     this.arms[0].update(shape.vertex, shape.a, armStyle, ARM_RADIUS)
     this.arms[1].update(shape.vertex, shape.c, armStyle, ARM_RADIUS)
     const points: Vec3[] = []
@@ -194,7 +197,7 @@ export class AngleView implements ObjectView {
     for (let index = 0; index <= steps; index++) {
       points.push(circlePoint(shape.vertex, shape.u, shape.v, shape.arcRadius, shape.radians * index / steps))
     }
-    const thickness = ARC_RADIUS * (style.size ?? 1)
+    const thickness = ARC_RADIUS * (style.size ?? 1) * (style.scale ?? 1)
     const key = `${thickness};${points.map(point => `${point.x},${point.y},${point.z}`).join(';')}`
     if (key !== this.key) {
       this.key = key
@@ -233,7 +236,7 @@ export class SphereView implements ObjectView {
 class NetView {
   readonly root = new THREE.Group()
   private faces = new THREE.Mesh(new THREE.BufferGeometry())
-  private outlines = new THREE.LineSegments(new THREE.BufferGeometry())
+  private outlines = new EdgeLines()
   constructor(private materials: MaterialCache) {
     this.root.add(this.faces, this.outlines)
     this.root.visible = false
@@ -243,14 +246,14 @@ class NetView {
     if (!net) return
     const [face, line] = NET_COLORS[solid] ?? ['#dddddd', '#555555']
     writePolygons(this.faces.geometry, net.faces)
-    writeSegments(this.outlines.geometry, net.outlines.flatMap(polyline =>
-      polyline.slice(0, -1).map((point, index): [Vec3, Vec3] => [point, polyline[index + 1]!])))
+    this.outlines.setSegments(net.outlines.flatMap(polyline =>
+      polyline.slice(0, -1).map((point, index): Segment => [point, polyline[index + 1]!])))
     this.faces.material = this.materials.face(face, 0.5)
     this.outlines.material = this.materials.line(line)
   }
   dispose(): void {
     this.faces.geometry.dispose()
-    this.outlines.geometry.dispose()
+    this.outlines.dispose()
   }
 }
 
@@ -273,24 +276,22 @@ export const HIDDEN_EDGE_COLOR = '#1f2937'
 
 /** Split outline lines into seen and hidden geometry with the edge and hidden-edge materials. */
 class OutlineLines {
-  readonly seen = new THREE.LineSegments(new THREE.BufferGeometry())
-  readonly hidden = new THREE.LineSegments(new THREE.BufferGeometry())
-  write(seen: readonly (readonly [Vec3, Vec3])[], hidden: readonly (readonly [Vec3, Vec3])[]): void {
-    writeSegments(this.seen.geometry, seen)
-    this.seen.computeLineDistances()
-    writeSegments(this.hidden.geometry, hidden)
-    this.hidden.computeLineDistances()
+  readonly seen = new EdgeLines()
+  readonly hidden = new EdgeLines()
+  write(seen: readonly Segment[], hidden: readonly Segment[]): void {
+    this.seen.setSegments(seen)
+    this.hidden.setSegments(hidden)
     this.hidden.visible = hidden.length > 0 && this.seen.visible
   }
-  look(materials: MaterialCache, edges: THREE.Material, show: boolean, selected: boolean): void {
+  look(materials: MaterialCache, edges: LineMaterial, show: boolean, selected: boolean): void {
     this.seen.material = edges
     this.seen.visible = show
     this.hidden.material = materials.hidden(selected ? SELECTED_COLOR : HIDDEN_EDGE_COLOR)
-    this.hidden.visible = show && (this.hidden.geometry.getAttribute('position')?.count ?? 0) > 0
+    this.hidden.visible = show && this.hidden.segmentCount > 0
   }
   dispose(): void {
-    this.seen.geometry.dispose()
-    this.hidden.geometry.dispose()
+    this.seen.dispose()
+    this.hidden.dispose()
   }
 }
 
@@ -303,7 +304,7 @@ export class PolyhedronView implements ObjectView, ViewerDependent {
   readonly root = new THREE.Group()
   private faces = new THREE.Mesh(new THREE.BufferGeometry())
   private outline = new OutlineLines()
-  private height = new THREE.Line(new THREE.BufferGeometry())
+  private height = new EdgeLines()
   private net: NetView
   private shape: PolyhedronShape | null = null
   private unfold = 0
@@ -319,8 +320,7 @@ export class PolyhedronView implements ObjectView, ViewerDependent {
     this.unfold = unfold
     this.key = ''
     writePolygons(this.faces.geometry, shape.faces.map(face => face.map(index => vertices[index]!)))
-    writePolyline(this.height.geometry, [shape.heightStart, shape.heightEnd])
-    this.height.computeLineDistances()
+    this.height.setPolyline([shape.heightStart, shape.heightEnd])
     this.height.visible = shape.heightStart !== shape.heightEnd
     const look = solidLook(this.materials, style, unfold)
     this.faces.material = look.faces
@@ -354,7 +354,7 @@ export class PolyhedronView implements ObjectView, ViewerDependent {
   dispose(): void {
     this.faces.geometry.dispose()
     this.outline.dispose()
-    this.height.geometry.dispose()
+    this.height.dispose()
     this.net.dispose()
   }
 }
@@ -363,8 +363,8 @@ export class RoundView implements ObjectView, ViewerDependent {
   readonly root = new THREE.Group()
   private body: THREE.Mesh
   private outline = new OutlineLines()
-  private height = new THREE.Line(new THREE.BufferGeometry())
-  private slant = new THREE.Line(new THREE.BufferGeometry())
+  private height = new EdgeLines()
+  private slant = new EdgeLines()
   private net: NetView
   private shape: RoundShape | null = null
   private unfold = 0
@@ -389,10 +389,8 @@ export class RoundView implements ObjectView, ViewerDependent {
     toThree(add(baseCenter, scale(axis, height / 2)), this.body.position)
     this.body.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), toThree(axis))
     this.body.scale.set(radius, height, radius)
-    writePolyline(this.height.geometry, [baseCenter, top])
-    this.height.computeLineDistances()
-    writePolyline(this.slant.geometry, [shape.rim, shape.topRim])
-    this.slant.computeLineDistances()
+    this.height.setPolyline([baseCenter, top])
+    this.slant.setPolyline([shape.rim, shape.topRim])
     const look = solidLook(this.materials, style, unfold)
     this.body.material = look.faces
     this.body.visible = look.showFaces
@@ -417,7 +415,7 @@ export class RoundView implements ObjectView, ViewerDependent {
     }
     const { u, v, radius, baseCenter, top, topRadius } = shape
     const ring = (center: Vec3, size: number) => {
-      const segments: [Vec3, Vec3][] = []
+      const segments: Segment[] = []
       const steps = 96
       for (let index = 0; index < steps; index++) {
         segments.push([circlePoint(center, u, v, size, 2 * Math.PI * index / steps),
@@ -430,8 +428,8 @@ export class RoundView implements ObjectView, ViewerDependent {
   dispose(): void {
     if (this.ratio > 0) this.body.geometry.dispose()
     this.outline.dispose()
-    this.height.geometry.dispose()
-    this.slant.geometry.dispose()
+    this.height.dispose()
+    this.slant.dispose()
     this.net.dispose()
   }
 }
@@ -440,36 +438,34 @@ export class RoundView implements ObjectView, ViewerDependent {
 export class SectionView implements ObjectView {
   readonly root = new THREE.Group()
   private face = new THREE.Mesh(new THREE.BufferGeometry())
-  private outline = new THREE.LineLoop(new THREE.BufferGeometry())
+  private outline = new EdgeLines()
   constructor(private materials: MaterialCache) {
     this.root.add(this.face, this.outline)
   }
   update(shape: SectionShape, style: ViewStyle): void {
     writePolygons(this.face.geometry, [shape.polygon])
-    writePolyline(this.outline.geometry, shape.polygon)
-    this.outline.computeLineDistances()
+    this.outline.setPolyline(shape.polygon, true)
     this.face.material = this.materials.face(style.selected ? SELECTED_COLOR : style.color, style.opacity ?? 0.6)
     this.face.visible = style.faces !== false
     this.outline.material = style.selected ? this.materials.line(SELECTED_COLOR) : edgeMaterial(this.materials, style.color, style.lineStyle)
   }
   dispose(): void {
     this.face.geometry.dispose()
-    this.outline.geometry.dispose()
+    this.outline.dispose()
   }
 }
 
 /** A distance measure: the shortest connection as a dashed line (other measures are a label only). */
 export class MeasureView implements ObjectView {
-  readonly root = new THREE.Line(new THREE.BufferGeometry())
+  readonly root = new EdgeLines()
   constructor(private materials: MaterialCache) {}
   update(from: Vec3 | undefined, to: Vec3 | undefined, style: ViewStyle): void {
     this.root.visible = from !== undefined && to !== undefined && distance(from, to) > 1e-9
     if (!from || !to) return
-    writePolyline(this.root.geometry, [from, to])
-    this.root.computeLineDistances()
+    this.root.setPolyline([from, to])
     this.root.material = this.materials.dashed(style.selected ? SELECTED_COLOR : style.color)
   }
   dispose(): void {
-    this.root.geometry.dispose()
+    this.root.dispose()
   }
 }

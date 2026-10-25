@@ -43,7 +43,8 @@ Bütün sürümler, kurulum adımları ve SHA-256 değerleri: [Releases](https:/
   (`OrtaNokta`, `Kesiştir`, `İzdüşüm`, `DikDoğru`, `ParalelDoğru`, `DikDüzlem`, `ParalelDüzlem`).
 - **Görünüm menüsü**: standart, önden, üstten, yandan, izometrik; ortografik kamera; eksenler;
   etiketleme (hiçbiri, noktalar, tümü) ve nokta koordinatları; gizli kenarlar ders kitabındaki
-  gibi kesikli.
+  gibi kesikli; ekran türü (bilgisayar, telefon/tablet, akıllı tahta: tahtada büyük düğmeler
+  ve kalın çizgiler).
 - **Düzlem / ızgara** göster-gizle, **standart görünüm**
 - **Nesne kartları** (drAW2D ile aynı panel): her nesnenin tanımı ve değerleri — uzunluk, düzlem
   denklemi, açı, yarıçap, taban alanı, yüzey alanı, hacim. Kartta gizle/göster, sil, düzenle;

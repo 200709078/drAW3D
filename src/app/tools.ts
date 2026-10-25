@@ -32,6 +32,8 @@ export interface ToolDependencies {
   finished(keepSelection: boolean): void
   /** A construction could not be built (an error message for the user). */
   report?(message: string): void
+  /** Pick tolerance in pixels; larger on smart boards. Default `hitTolerance`. */
+  tolerance?(kind: PointerKind): number
 }
 
 /** Construction tools that pick objects as well as points (roadmap Y5). */
@@ -147,7 +149,7 @@ export class ToolController {
 
   private pick(spot: ScreenPoint, kind: PointerKind): Pick | null {
     const { document, projector } = this.deps
-    const tolerance = hitTolerance(kind)
+    const tolerance = this.deps.tolerance?.(kind) ?? hitTolerance(kind)
     const point = nearestPoint(document.objects, projector, spot, tolerance)
     if (point) return { kind: 'existing', point }
     const hit = hitPart(document.objects, this.deps.shapes(), projector, spot, tolerance)
@@ -225,7 +227,7 @@ export class ToolController {
   private actStructure(action: StructureAction, spot: ScreenPoint, kind: PointerKind): void {
     const { document, projector } = this.deps
     const step = STRUCTURE_STEPS[action][this.staged.length]!
-    const tolerance = hitTolerance(kind)
+    const tolerance = this.deps.tolerance?.(kind) ?? hitTolerance(kind)
     if (step === 'point' || step === 'pointOrSegment') {
       // A segment as the first pick of the midpoint tool is enough on its own.
       if (step === 'pointOrSegment' && !nearestPoint(document.objects, projector, spot, tolerance)) {

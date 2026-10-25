@@ -24,6 +24,8 @@ export interface SelectDependencies {
   projector: Projector
   shapes(): ShapeMap
   refresh(): void
+  /** Pick tolerance in pixels; larger on smart boards. Default `hitTolerance`. */
+  tolerance?(kind: PointerKind): number
 }
 
 type DragMode = 'horizontal' | 'vertical' | 'on' | 'height'
@@ -60,7 +62,7 @@ export class SelectController {
   /** True when the press is the tool's (a point); false leaves it to the camera. */
   pointerDown(spot: ScreenPoint, kind: PointerKind): boolean {
     const { document, projector } = this.deps
-    const tolerance = hitTolerance(kind)
+    const tolerance = this.deps.tolerance?.(kind) ?? hitTolerance(kind)
     let point = nearestPoint(document.objects, projector, spot, tolerance)
     const hit = point ? null : hitPart(document.objects, this.deps.shapes(), projector, spot, tolerance)
     if (!point && !hit) {

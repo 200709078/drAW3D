@@ -16,6 +16,8 @@ export const NEXT_GROUND_MODE: Readonly<Record<GroundMode, GroundMode>> = {
 export interface Environment {
   setGroundMode(mode: GroundMode): void
   setAxes(visible: boolean): void
+  /** Resolution of the sun's shadow map (smaller on phones). */
+  setShadowSize(size: number): void
 }
 
 export const AXIS_COLORS = { x: '#d32f2f', y: '#2e7d32', z: '#1565c0' } as const
@@ -89,5 +91,12 @@ export function createEnvironment(scene: THREE.Scene, labels: LabelLayer): Envir
       grid.visible = mode !== 'hideBoth'
     },
     setAxes,
+    setShadowSize(size) {
+      if (sun.shadow.mapSize.x === size) return
+      sun.shadow.mapSize.set(size, size)
+      // The map is rebuilt at the new size on the next frame.
+      sun.shadow.map?.dispose()
+      sun.shadow.map = null
+    },
   }
 }

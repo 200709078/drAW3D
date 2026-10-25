@@ -44,9 +44,9 @@ export class ArrowView {
   }
 
   /** Keep a constant size on screen; `pixelSize` is the world size of a pixel at a point. */
-  scaleFor(pixelSize: (point: Vec3) => number): void {
+  scaleFor(pixelSize: (point: Vec3) => number, factor = 1): void {
     if (!this.root.visible) return
     const { x, y, z } = this.root.position
-    this.root.scale.setScalar(Math.max(pixelSize({ x, y, z }) * SCREEN_PIXELS, 0.05))
+    this.root.scale.setScalar(Math.max(pixelSize({ x, y, z }) * SCREEN_PIXELS * factor, 0.05))
   }
 }

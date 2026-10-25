@@ -26,6 +26,8 @@ export interface SceneState {
   selectedId: ObjectId | null
   /** Larger points for touch screens. */
   coarse: boolean
+  /** Size factor of the screen (`DisplayProfile.sceneScale`): points and thick lines. */
+  scale: number
   /** The selected point's drag directions. */
   arrows: { origin: Vec3; directions: Vec3[] } | null
   view: ViewOptions
@@ -129,6 +131,7 @@ export class SceneSync {
   private cursor: THREE.Mesh
   private hiddenEdges = true
   private viewer: Viewer | null = null
+  private scale = 1
   readonly arrows: ArrowView
 
   constructor(scene: THREE.Scene, private materials: MaterialCache, private labels: LabelLayer) {
@@ -140,6 +143,8 @@ export class SceneSync {
   }
 
   update(state: SceneState): void {
+    this.scale = state.scale
+    this.cursor.scale.setScalar(state.scale)
     if (this.hiddenEdges !== state.view.hiddenEdges) {
       this.hiddenEdges = state.view.hiddenEdges
       this.setViewer(this.viewer)
@@ -186,7 +191,7 @@ export class SceneSync {
       const color = selected ? SELECTED_COLOR : object.color
       if (isPoint(object)) {
         const base = state.coarse ? COARSE_POINT_RADIUS : POINT_RADIUS
-        const radius = (object.constraint?.type === 'on' ? base * 1.1 : base) * (object.size ?? 1)
+        const radius = (object.constraint?.type === 'on' ? base * 1.1 : base) * (object.size ?? 1) * state.scale
         ;(view as PointView).update(object.position, color, radius)
         if (labelShown(object, state.view.labels)) {
           const { x, y, z } = object.position
@@ -220,6 +225,7 @@ export class SceneSync {
         ...(object.opacity !== undefined ? { opacity: object.opacity } : {}),
         faces: !object.facesHidden,
         edges: !object.edgesHidden,
+        scale: state.scale,
       }
       const unfold = 'unfold' in object ? object.unfold : 0
       drawShape(view, shape!, style, unfold)
@@ -268,7 +274,7 @@ export class SceneSync {
     }
     this.previewView.view.root.visible = true
     const solid = shape.kind === 'polyhedron' || shape.kind === 'round' || shape.kind === 'sphere' || shape.kind === 'plane'
-    drawShape(this.previewView.view, shape, { color: solid ? PREVIEW_SOLID_COLOR : PREVIEW_COLOR, selected: false }, 0)
+    drawShape(this.previewView.view, shape, { color: solid ? PREVIEW_SOLID_COLOR : PREVIEW_COLOR, selected: false, scale: this.scale }, 0)
   }
 
   private disposeView(id: ObjectId): void {

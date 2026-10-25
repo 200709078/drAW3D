@@ -1,4 +1,6 @@
 import * as THREE from 'three'
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
+import { edgeMaterial } from './edge-lines'
 
 /**
  * Shared materials by color and kind. Objects of one color share one material, so a
@@ -6,6 +8,7 @@ import * as THREE from 'three'
  */
 export class MaterialCache {
   private materials = new Map<string, THREE.Material>()
+  private lineWidth = 1
 
   private get<M extends THREE.Material>(key: string, create: () => M): M {
     let material = this.materials.get(key) as M | undefined
@@ -29,23 +32,31 @@ export class MaterialCache {
     }))
   }
 
-  line(color: string, opacity = 1): THREE.LineBasicMaterial {
-    return this.get(`line:${color}:${opacity}`, () => new THREE.LineBasicMaterial({
-      color, transparent: opacity < 1, opacity,
-    }))
+  /** Edge lines (`EdgeLines`); every one has the width set by `setLineWidth`. */
+  line(color: string, opacity = 1): LineMaterial {
+    return this.get(`line:${color}:${opacity}`, () => edgeMaterial(color, { opacity }, this.lineWidth))
   }
 
-  dashed(color: string): THREE.LineDashedMaterial {
-    return this.get(`dashed:${color}`, () => new THREE.LineDashedMaterial({ color, dashSize: 0.15, gapSize: 0.1 }))
+  dashed(color: string): LineMaterial {
+    return this.get(`dashed:${color}`, () => edgeMaterial(color, { dashed: { dash: 0.15, gap: 0.1 } }, this.lineWidth))
   }
 
   /** Edges hidden behind a solid: longer dashes that stay readable through the faces. */
-  hidden(color: string): THREE.LineDashedMaterial {
-    return this.get(`hidden:${color}`, () => new THREE.LineDashedMaterial({ color, dashSize: 0.25, gapSize: 0.16 }))
+  hidden(color: string): LineMaterial {
+    return this.get(`hidden:${color}`, () => edgeMaterial(color, { dashed: { dash: 0.25, gap: 0.16 } }, this.lineWidth))
   }
 
-  dotted(color: string): THREE.LineDashedMaterial {
-    return this.get(`dotted:${color}`, () => new THREE.LineDashedMaterial({ color, dashSize: 0.04, gapSize: 0.1 }))
+  dotted(color: string): LineMaterial {
+    return this.get(`dotted:${color}`, () => edgeMaterial(color, { dashed: { dash: 0.04, gap: 0.1 } }, this.lineWidth))
+  }
+
+  /** Width of every edge line in CSS pixels. */
+  setLineWidth(width: number): void {
+    if (width === this.lineWidth) return
+    this.lineWidth = width
+    for (const material of this.materials.values()) {
+      if (material instanceof LineMaterial) material.linewidth = width
+    }
   }
 
   /** Unlit and drawn over everything: tool previews and the cursor. */

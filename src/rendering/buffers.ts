@@ -27,16 +27,6 @@ function pack(points: readonly Vec3[]): Float32Array {
   return values
 }
 
-/** A connected polyline for THREE.Line. */
-export function writePolyline(geometry: THREE.BufferGeometry, points: readonly Vec3[]): void {
-  writePositions(geometry, pack(points))
-}
-
-/** Separate segments (pairs) for THREE.LineSegments. */
-export function writeSegments(geometry: THREE.BufferGeometry, segments: readonly (readonly [Vec3, Vec3])[]): void {
-  writePositions(geometry, pack(segments.flat()))
-}
-
 /** Planar convex polygons as a flat-shaded triangle list. */
 export function writePolygons(geometry: THREE.BufferGeometry, polygons: readonly (readonly Vec3[])[]): void {
   const corners: Vec3[] = []

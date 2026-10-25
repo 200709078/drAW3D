@@ -47,8 +47,6 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer |
       return null
     }
   }
-  // Sharp enough on high-density screens without quadrupling the fill cost.
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFShadowMap
   canvas.addEventListener('webglcontextlost', event => {

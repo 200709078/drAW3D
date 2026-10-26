@@ -484,3 +484,18 @@ olmalı", "klavye-1", "klavye-2").
   (`build/icons`, `build/icon.ico`) ve Android simgeleri `scripts/icons.sh` ile ondan
   üretilir.
 
+
+## Akıllı tahta testleri — yöntem (2026-10-26)
+
+**Kullanıcı kararı:** Projelerde biraz daha ilerledikten sonra yapılacak; gerekirse üç yol sırayla
+denenir:
+
+1. **HDMI + dokunmatik USB ile tahta bilgisayara bağlı:** tahta büyük bir dokunmatik ekran olur;
+   `npm run dev` ile anında deneme. Dokunma, iki parmak, araç çubuğu, kalınlık/renk görünürlüğü
+   için. Tahta modu web'de `?tahta=1` ile zorlanabilir; dokunuş kayarsa ekran yansıtılır ya da
+   dokunmatik HDMI çıkışına eşlenir. Çizimi bilgisayar yaptığı için tahtadaki gecikmeyi göstermez.
+2. **Tahtanın kendi bilgisayarında, kurmadan:** `npm run dev -- --host`, tahtanın tarayıcısında
+   `http://<bilgisayar-IP>:5173/?tahta=1`. Gerçek tahta donanımında web sürümü; gecikme için. Aynı
+   ağ gerekir (okul ağı ayırıyorsa telefon paylaşımı). Electron'a özgü işleri sınamaz.
+3. **Kurulu paketle (.deb / AppImage):** ETAP'a özgü maddeler (ETA Klavye, ekran alıntısı, klasör
+   bağı, paket davranışı) ve sürüm öncesi son kontrol.

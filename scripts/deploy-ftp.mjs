@@ -129,7 +129,7 @@ try {
         console.warn(`  ! ${dir}/ boş değil, bırakıldı.`);
       }
     }
-    console.log(`✓ ${APP_DIR} yüklendi: https://madematik.com${base}/`);
+    console.log(`✓ ${APP_DIR} yüklendi: https://madematik.com/${APP_DIR}/`);
   }
 } catch (error) {
   console.error("✗ FTP yükleme hatası:");

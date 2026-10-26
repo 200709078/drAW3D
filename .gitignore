@@ -34,3 +34,6 @@ playwright-report/
 *.jks
 *.keystore
 *.p12
+
+# FTP yayın bilgileri (scripts/deploy-ftp.mjs) asla depoya girmez
+.env

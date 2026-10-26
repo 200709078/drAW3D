@@ -13,6 +13,7 @@ npm ci
 npm run dev              # Vite dev server
 npm run typecheck        # tsc for src/ and for electron/ (tsconfig.electron.json)
 npm run build            # typecheck + compile electron shell + vite build → dist/, dist-electron/
+npm run deploy           # build + upload dist/ to madematik.com/public/drAW3D over FTP (scripts/deploy-ftp.mjs, .env; the host has no TLS yet, so .env sets FTP_SECURE=false); add `-- --dry-run` to only list changes. Live site: the user runs it, never run it unasked
 npm test                 # Playwright (Chromium, WebGL on SwiftShader); starts Vite on 127.0.0.1:4173
 TEST_PREVIEW=1 npm test  # same tests against built dist/ via vite preview (run build first)
 npx playwright test tests/app-tools.spec.ts               # single file

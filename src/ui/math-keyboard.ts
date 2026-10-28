@@ -143,6 +143,11 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
     if (capital && shift === 'once') setShift('off')
     const start = input.selectionStart ?? input.value.length
     const end = input.selectionEnd ?? start
+    // ')' steps over the one the '(' key already added, like the physical key on the command input.
+    if (key.text === ')' && start === end && input.value[start] === ')') {
+      input.setSelectionRange(start + 1, start + 1)
+      return
+    }
     input.value = input.value.slice(0, start) + key.text + input.value.slice(end)
     // A template selects its first placeholder; other text leaves the caret inside it.
     const placeholder = [...key.text.matchAll(PLACEHOLDER)][0]

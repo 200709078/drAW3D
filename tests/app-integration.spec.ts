@@ -263,3 +263,21 @@ test.describe('dar ekran ve dokunma', () => {
     expect(errors).toEqual([])
   })
 })
+
+test('elle yazılan kapanış parantezi kendiliğinden eklenenin üzerinden geçer', async ({ page }) => {
+  await open(page)
+  const input = page.locator('#giris')
+  await input.click()
+  await page.keyboard.type('Küre((5,0,0),1.5)')
+  await expect(input).toHaveValue('Küre((5,0,0),1.5)')
+  await page.keyboard.press('Enter')
+  await expect(input).toHaveValue('')
+  expect(await page.evaluate(() => window.drAW3DApp!.objects().some(object => object.type === 'sphere'))).toBe(true)
+  await page.locator('#keyboardToggle').click()
+  for (const label of ['(', '2', ')']) {
+    await page.locator('#mathKeyboard .math-keyboard-page:not([hidden]) .math-key').filter({
+      has: page.locator(`xpath=self::*[normalize-space(.)="${label}"]`),
+    }).click()
+  }
+  await expect(input).toHaveValue('(2)')
+})

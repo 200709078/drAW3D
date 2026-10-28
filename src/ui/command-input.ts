@@ -1,8 +1,12 @@
 import { PLACEHOLDER } from '../commands/language'
 
 const PAIRS: Readonly<Record<string, string>> = { '(': ')', '[': ']', '{': '}' }
+const CLOSING = new Set(Object.values(PAIRS))
 
-/** Insert the closing bracket around the selection; Backspace removes an empty pair. */
+/**
+ * Insert the closing bracket around the selection; typing a closing bracket steps over the one
+ * already there (otherwise `sin(x)` typed key by key became `sin(x))`); Backspace removes an empty pair.
+ */
 function handleBrackets(event: KeyboardEvent, input: HTMLInputElement): void {
   const start = input.selectionStart ?? input.value.length
   const end = input.selectionEnd ?? start
@@ -15,6 +19,11 @@ function handleBrackets(event: KeyboardEvent, input: HTMLInputElement): void {
     const inner = new RegExp(`^${PLACEHOLDER.source}$`, 'u').test(selected) ? '' : selected
     input.value = value.slice(0, start) + event.key + inner + close + value.slice(end)
     input.setSelectionRange(start + 1, start + 1 + inner.length)
+    return
+  }
+  if (CLOSING.has(event.key) && start === end && value[start] === event.key) {
+    event.preventDefault()
+    input.setSelectionRange(start + 1, start + 1)
     return
   }
   if (event.key === 'Backspace' && start === end) {

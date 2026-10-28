@@ -89,15 +89,41 @@ const TABS: KeyboardTab[] = [
 
 export interface MathKeyboard {
   readonly isOpen: boolean
+  /** The field the keys type into: the command input unless another field took focus. */
+  readonly target: HTMLInputElement
   setOpen(open: boolean): void
+  /** Back to the command input and the side panel, e.g. when the help popup closes. */
+  release(): void
+}
+
+/** Text fields the keyboard serves: plain inputs, not checkboxes, sliders, colors or files. */
+const TYPEABLE = new Set(['text', 'search', 'number'])
+
+function typeable(element: EventTarget | null): element is HTMLInputElement {
+  return element instanceof HTMLInputElement && TYPEABLE.has(element.type) && !element.readOnly && !element.disabled
 }
 
 /**
- * An on-screen keyboard for the command input. It inserts at the cursor (replacing a
- * selected template placeholder), and its action keys send the same key events as a
- * physical keyboard, so suggestions, placeholders and submitting behave identically.
+ * A touch screen, also one whose primary pointer is a mouse: smart boards often report their
+ * touch frame as a secondary pointer, and some only as touch points.
  */
-export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, toggle: HTMLButtonElement): MathKeyboard {
+function touchScreen(): boolean {
+  return window.matchMedia('(any-pointer: coarse)').matches || navigator.maxTouchPoints > 0
+}
+
+/**
+ * The app's own on-screen keyboard, used instead of the system one (which a full-screen window
+ * hides on Pardus boards). It serves whichever text field has focus — the command input, a card
+ * being edited, a question dialog, the help search — and moves into a modal dialog or the help
+ * popup while one of their fields is in use, since those cover the side panel. It inserts at the
+ * cursor (replacing a selected template placeholder), and its action keys send the same key
+ * events as a physical keyboard, so suggestions, placeholders and submitting behave identically.
+ */
+export function createMathKeyboard(commandInput: HTMLInputElement, panel: HTMLElement, toggle: HTMLButtonElement): MathKeyboard {
+  let input = commandInput
+  let host = panel
+  /** The field where the user last closed the keyboard; touch focus there does not reopen it. */
+  let closedOn: HTMLInputElement | null = null
   const keyboard = document.createElement('div')
   keyboard.id = 'mathKeyboard'
   keyboard.className = 'math-keyboard'
@@ -137,6 +163,15 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
     }
   }
 
+  /** Number inputs have no selection API; the caret then stays at the end. */
+  function select(start: number, end = start): void {
+    try {
+      input.setSelectionRange(start, end)
+    } catch {
+      // ignore
+    }
+  }
+
   function insert(typed: TextKey): void {
     const capital = typed.letter === true && shift !== 'off'
     const key = capital ? { ...typed, text: typed.text.toLocaleUpperCase('tr-TR') } : typed
@@ -145,17 +180,16 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
     const end = input.selectionEnd ?? start
     // ')' steps over the one the '(' key already added, like the physical key on the command input.
     if (key.text === ')' && start === end && input.value[start] === ')') {
-      input.setSelectionRange(start + 1, start + 1)
+      select(start + 1)
       return
     }
     input.value = input.value.slice(0, start) + key.text + input.value.slice(end)
     // A template selects its first placeholder; other text leaves the caret inside it.
     const placeholder = [...key.text.matchAll(PLACEHOLDER)][0]
     if (placeholder) {
-      input.setSelectionRange(start + placeholder.index!, start + placeholder.index! + placeholder[0].length)
+      select(start + placeholder.index!, start + placeholder.index! + placeholder[0].length)
     } else {
-      const caret = start + key.text.length - (key.caret ?? 0)
-      input.setSelectionRange(caret, caret)
+      select(start + key.text.length - (key.caret ?? 0))
     }
     input.dispatchEvent(new Event('input', { bubbles: true }))
   }
@@ -170,13 +204,50 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
     if (key.key === 'Backspace') {
       const from = start === end ? Math.max(0, start - 1) : start
       input.value = input.value.slice(0, from) + input.value.slice(end)
-      input.setSelectionRange(from, from)
+      select(from)
       input.dispatchEvent(new Event('input', { bubbles: true }))
     } else if (key.key === 'ArrowLeft' || key.key === 'ArrowRight') {
       const caret = key.key === 'ArrowLeft'
         ? (start === end ? Math.max(0, start - 1) : start)
         : (start === end ? Math.min(input.value.length, end + 1) : end)
-      input.setSelectionRange(caret, caret)
+      select(caret)
+    } else if (key.key === 'Enter' && input.form) {
+      // A dialog's field submits with its first button (Tamam), as Enter on a physical keyboard does.
+      input.form.requestSubmit(input.form.querySelector<HTMLButtonElement>('button[type="submit"]'))
+    }
+  }
+
+  /** Type into `field` from now on; the keyboard follows it into a dialog or the help popup. */
+  function attach(field: HTMLInputElement): void {
+    if (field === input && hostFor(field).contains(keyboard)) return
+    const open = !keyboard.hidden
+    if (open) input.removeAttribute('inputmode')
+    input = field
+    host = hostFor(field)
+    const embedded = host !== panel
+    keyboard.classList.toggle('is-embedded', embedded)
+    // In the help popup it goes right below the search field, above the long topic list.
+    const searchRow = field.closest('.help-search')
+    if (searchRow) searchRow.after(keyboard)
+    else host.append(keyboard)
+    panel.classList.toggle('has-keyboard', open && !embedded)
+    if (open) input.inputMode = 'none'
+    // A closed dialog takes the keyboard with it; give it back to the command input.
+    const dialog = field.closest('dialog')
+    dialog?.addEventListener('close', () => {
+      if (input === field) attach(commandInput)
+    }, { once: true })
+  }
+
+  function hostFor(field: HTMLInputElement): HTMLElement {
+    return field.closest<HTMLElement>('dialog form, .help-content') ?? panel
+  }
+
+  /** A card that stopped editing, a closed popup or a removed field leaves the command input. */
+  function ensureTarget(): void {
+    const popup = input.closest<HTMLElement>('.help-popup')
+    if (!input.isConnected || input.readOnly || input.disabled || (popup && popup.style.display !== 'flex')) {
+      attach(commandInput)
     }
   }
 
@@ -213,6 +284,7 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
           letters.push({ button, key })
         }
         button.addEventListener('click', () => {
+          ensureTarget()
           input.focus()
           if ('shift' in key) setShift(shift === 'off' ? 'once' : shift === 'once' ? 'locked' : 'off')
           else if ('key' in key) act(key)
@@ -235,27 +307,41 @@ export function createMathKeyboard(input: HTMLInputElement, host: HTMLElement, t
 
   const api: MathKeyboard = {
     get isOpen() { return !keyboard.hidden },
+    get target() { return input },
     setOpen(open) {
+      if (open) ensureTarget()
+      else closedOn = input
       keyboard.hidden = !open
-      host.classList.toggle('has-keyboard', open)
+      panel.classList.toggle('has-keyboard', open && host === panel)
       toggle.setAttribute('aria-pressed', String(open))
       toggle.title = open ? 'Matematik klavyesini kapat' : 'Matematik klavyesi'
       // The on-screen keyboard replaces the system one while it is open.
       if (open) input.inputMode = 'none'
       else input.removeAttribute('inputmode')
     },
+    release() {
+      attach(commandInput)
+    },
   }
 
   toggle.addEventListener('mousedown', event => event.preventDefault())
   toggle.addEventListener('click', () => {
+    // The button sits by the command input: it opens the keyboard for that input.
+    if (!api.isOpen) attach(commandInput)
     api.setOpen(!api.isOpen)
     input.focus()
   })
-  // On touch screens the first focus opens it; closing it again is the user's choice.
-  let offered = false
-  input.addEventListener('focus', () => {
-    if (!offered && window.matchMedia('(pointer: coarse)').matches) api.setOpen(true)
-    offered = true
-  })
+  // On a touch screen a field's focus opens the keyboard, unless the user closed it in that field.
+  const offer = (field: EventTarget | null) => {
+    if (!typeable(field) || keyboard.contains(field)) return
+    attach(field)
+    if (!api.isOpen && field !== closedOn && touchScreen()) api.setOpen(true)
+  }
+  document.addEventListener('focusin', event => offer(event.target))
+  // A card's field is focused while read-only (the first click of a double click) and only then
+  // becomes editable, without a new focus event.
+  new MutationObserver(records => {
+    if (records.some(record => record.target === document.activeElement)) offer(document.activeElement)
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['readonly'] })
   return api
 }

@@ -802,6 +802,16 @@ code.example:hover {
 	display: none;
 }
 
+/* In the help popup the keyboard follows the search field instead of covering the panel. */
+.math-keyboard.is-embedded {
+	position: static;
+	width: min(520px, calc(100vw - 64px));
+	margin: 12px auto 0;
+	border: 1px solid #d6dce8;
+	border-radius: 8px;
+	box-shadow: none;
+}
+
 /* Room for the keyboard below the object list. */
 #rightWrapper.has-keyboard #scrollWrapper {
 	padding-bottom: 240px;

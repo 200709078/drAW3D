@@ -219,7 +219,11 @@ export class ObjectPanel {
         this.endEdit(view)
       }
     })
-    input.addEventListener('blur', () => { if (view.editing) this.endEdit(view) })
+    // A key of the on-screen keyboard takes focus for a moment and gives it back; that is not leaving.
+    input.addEventListener('blur', event => {
+      const next = event.relatedTarget
+      if (view.editing && !(next instanceof Element && next.closest('#mathKeyboard'))) this.endEdit(view)
+    })
     hide.addEventListener('click', () => this.handlers.toggleVisibility(id))
     remove.addEventListener('click', () => this.handlers.remove(id))
     block.append(input, output, styleButton, edit, hide, remove)

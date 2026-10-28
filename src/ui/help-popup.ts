@@ -6,6 +6,8 @@ export interface HelpPopupOptions {
   input: HTMLInputElement
   /** An example was chosen: make the command input visible and focus it. */
   onExample(command: string): void
+  /** The popup closed (the on-screen keyboard leaves its search field). */
+  onClose?(): void
 }
 
 /** Topics and examples from the language table, as H4 headings followed by their entries. */
@@ -35,7 +37,7 @@ function renderTopics(section: HTMLElement): void {
 }
 
 /** The help popup renders its topics and turns them into searchable accordions on first open. */
-export function createHelpPopup({ input, onExample }: HelpPopupOptions): { open(): void; close(): void } {
+export function createHelpPopup({ input, onExample, onClose }: HelpPopupOptions): { open(): void; close(): void } {
   const popup = document.getElementById('help-popup')
   const header = document.getElementById('help-header')
   const section = document.querySelector<HTMLElement>('.help-section')
@@ -44,6 +46,7 @@ export function createHelpPopup({ input, onExample }: HelpPopupOptions): { open(
 
   const close = () => {
     if (popup) popup.style.display = 'none'
+    onClose?.()
   }
 
   function filter(query: string): void {

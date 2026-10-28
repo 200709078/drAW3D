@@ -520,6 +520,11 @@ Ekran türü **Akıllı tahta**; tahtanın dokunmatiği bu düzende çalışmad�
 - **Bulunan ve düzeltilen (2026-10-28):** fiziksel klavyeyle `(` yazınca `)` kendiliğinden
   ekleniyor ama elle yazılan `)` üzerinden geçmiyordu; `Küre((5,0,0),1.5)` → "Parantezler dengeli
   olmalı". Artık geçiyor (drAW2D'de de; `command-input.ts` iki projede aynı).
+- **Kullanıcı bulgusu — yardımdaki "Komut ara" kutusunda hiçbir klavye açılmıyor.** **Uygulandı
+  (2026-10-28):** drAW2D'deki gibi matematik klavyesi odaklanan her yazı alanına yazar (komut
+  kutusu, düzenlenen kart, yardım araması), yardım penceresine taşınıp kapanınca panele döner;
+  dokunmatik ekranda (fare gibi tanıtılan tahta dokunmatiği dahil) kendiliğinden açılır.
+  `tests/math-keyboard.spec.ts`.
 - **Kullanıcı kararı (2026-10-28):** matematik klavyesinin 123 sekmesinde `a` kalır; drAW3D'de
   `x` kullanılmaz (x, y, z ayrılmış; denklem yok). Düzlem denklemi eklenirse yeniden düşünülür.
 - **Bekleyen:** dokunma (tek parmakla döndürme, iki parmakla yakınlaştırma, araç hareketleri),

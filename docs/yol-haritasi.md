@@ -22,7 +22,7 @@ aldı; aynı gün Y1, Y2 ve Y3'ü, ardından Y4 ve Y5'i, sonra Y6–Y9'u istedi 
 9. Kesit (Y8). **Uygulandı (2026-10-24).**
 10. Yeni cisimler ve açınım seçenekleri (Y9). **Uygulandı (2026-10-24).**
 11. Android/iOS paketleme (A2). Önce Android, yalnız drAW3D'de (2026-10-25). **Android uygulandı (2026-10-25)**; imza anahtarı ve telefonda deneme bekleniyor. iOS beklemede.
-12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor.
+12. Cihaza göre görüntü ayarları: telefon, akıllı tahta, PC, web (Y10). **Uygulandı (2026-10-25)**, gerçek cihazda denenmeyi bekliyor. Akıllı tahta görünümünün boyutları 2026-10-28'de tahtada görüntü olarak uygun bulundu (bkz. "Akıllı tahta bulguları"); dokunma ve tahta donanımında akıcılık bekliyor.
 13. Dar ekranda araç çubuğunun düzeni (Y11) — not, acil değil.
 14. İkinci telefon denemesinden notlar: standart görünüm, klavye yüksekliği, logo (Y12). Standart görünüm, klavye ve logo **uygulandı (2026-10-25)**.
 
@@ -499,3 +499,20 @@ denenir:
    ağ gerekir (okul ağı ayırıyorsa telefon paylaşımı). Electron'a özgü işleri sınamaz.
 3. **Kurulu paketle (.deb / AppImage):** ETAP'a özgü maddeler (ETA Klavye, ekran alıntısı, klasör
    bağı, paket davranışı) ve sürüm öncesi son kontrol.
+
+## Akıllı tahta bulguları (2026-10-28)
+
+Yol 1: tahta dizüstünün ikinci ekranı (HDMI, 1920×1080), güncel kod `npm run dev` ile, Görünüm →
+Ekran türü **Akıllı tahta**; tahtanın dokunmatiği bu düzende çalışmadı (drAW
+`docs/tahta-test-notlari.md`), deneme fareyle. Örnek: altıgen prizma, küp, küre, koni.
+
+- **Kullanıcı değerlendirmesi:** düğme, kart ve menü boyutları uygun; cisim kenarları ve gizli
+  kenarlar sınıfın arkasından seçiliyor; noktalar ve köşe adları yaklaştırınca okunuyor; kart
+  ölçüleri (hacim, yüzey alanı) okunuyor; açınım oynatma akıcı (çizim dizüstünde, tahta
+  donanımında değil).
+- **Gözlem (Claude, ekran görüntüsü):** açılışta kamera eksenleri ±20 gösterecek uzaklıkta;
+  2–3 birimlik cisimler ekranın ortasında küçük kalıyor ve köşe adları üst üste biniyor.
+  **Öneri:** cisim eklenince (ya da Ana görünüm düğmesinde) kamerayı nesnelere sığdırmak;
+  kullanıcı onayı bekliyor.
+- **Bekleyen:** dokunma (tek parmakla döndürme, iki parmakla yakınlaştırma, araç hareketleri),
+  "Otomatik" ekran türünün tahtayı tanıması ve akıcılık tahtanın kendi bilgisayarında (Yol 2/3).

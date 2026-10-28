@@ -281,3 +281,51 @@ test('elle yazılan kapanış parantezi kendiliğinden eklenenin üzerinden geç
   }
   await expect(input).toHaveValue('(2)')
 })
+
+test('yeni cisim kamerayı cisimlere sığdırır; geri al ve yinele kamerayı oynatmaz', async ({ page }) => {
+  await open(page)
+  const corners = [[0, 0, 0], [2, 0, 0], [0, 2, 0], [0, 0, 2], [2, 2, 0], [2, 0, 2], [0, 2, 2], [2, 2, 2]]
+  const span = async () => {
+    const points = await Promise.all(corners.map(([x, y, z]) => at(page, x!, y!, z!)))
+    const xs = points.map(point => point.x)
+    return Math.max(...xs) - Math.min(...xs)
+  }
+  const submit = async (command: string) => {
+    await page.locator('#giris').fill(command)
+    await page.locator('#giris').press('Enter')
+    await idleFrames(page)
+  }
+  const before = await span()
+  await submit('Küp((0,0,0),(2,0,0))')
+  const fitted = await span()
+  expect(fitted).toBeGreaterThan(before * 2.5)
+  const corner = await at(page, 2, 2, 2)
+  await page.locator('#undo').click()
+  await idleFrames(page)
+  await page.locator('#redo').click()
+  await idleFrames(page)
+  expect(await at(page, 2, 2, 2)).toEqual(corner)
+
+  // A far sphere: the camera moves so that both solids are on the screen.
+  await submit('Küre((30,0,0),2)')
+  const viewport = (await page.locator('#viewport').boundingBox())!
+  for (const [x, y, z] of [[0, 0, 0], [32, 0, 0], [28, 0, 0]] as const) {
+    const point = await at(page, x, y, z)
+    expect(point.x).toBeGreaterThan(viewport.x)
+    expect(point.x).toBeLessThan(viewport.x + viewport.width)
+    expect(point.y).toBeGreaterThan(viewport.y)
+    expect(point.y).toBeLessThan(viewport.y + viewport.height)
+  }
+
+  // The standard view looks from the standard direction at what is there.
+  await page.mouse.move(200, 700)
+  await page.mouse.down()
+  await page.mouse.move(400, 650, { steps: 8 })
+  await page.mouse.up()
+  await idleFrames(page)
+  await page.locator('#standardView').click()
+  await idleFrames(page)
+  const sphere = await at(page, 30, 0, 0)
+  expect(sphere.x).toBeGreaterThan(viewport.x)
+  expect(sphere.x).toBeLessThan(viewport.x + viewport.width)
+})

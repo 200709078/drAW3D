@@ -12,6 +12,7 @@ import { GeometryDocument } from '../document/geometry-document'
 import { redefineObject } from '../document/redefine'
 import { submitCommand } from '../document/submit'
 import { flatNet } from '../geometry/net-sheet'
+import { partsOf } from '../geometry/parts'
 import { maxUnfoldAngle } from '../geometry/unfold'
 import { isPoint, isPolyhedron, isUnfoldable, type GeometryObject, type ObjectId } from '../geometry/types'
 import type { Vec3 } from '../geometry/vec3'
@@ -350,8 +351,45 @@ export function startApp(): void {
     frame.request()
   }
 
+  /**
+   * Solids and spheres the camera has already seen. A new one (a command, a tool, a pasted
+   * file) brings the camera to the visible ones; undo, redo and opening a file remember the
+   * current ones first so the camera stays where it is.
+   */
+  let knownBodies = new Set<ObjectId>()
+  function bodies(): GeometryObject[] {
+    return doc.objects.filter(object => (isUnfoldable(object) || object.type === 'sphere') && !doc.isDraft(object.id))
+  }
+  function rememberBodies(): void {
+    knownBodies = new Set(bodies().map(object => object.id))
+  }
+
+  /** Look at the visible solids and spheres from the current direction; false if there are none. */
+  function fitBodies(): boolean {
+    const samples = bodies().filter(object => !object.hidden).flatMap(object => {
+      const shape = shapes.get(object.id)
+      return shape ? partsOf(shape).flatMap(part => part.samples()) : []
+    })
+    if (samples.length === 0) return false
+    const low = { x: Infinity, y: Infinity, z: Infinity }
+    const high = { x: -Infinity, y: -Infinity, z: -Infinity }
+    for (const point of samples) {
+      for (const axis of ['x', 'y', 'z'] as const) {
+        low[axis] = Math.min(low[axis], point[axis])
+        high[axis] = Math.max(high[axis], point[axis])
+      }
+    }
+    const center = { x: (low.x + high.x) / 2, y: (low.y + high.y) / 2, z: (low.z + high.z) / 2 }
+    const radius = Math.max(...samples.map(point => Math.hypot(point.x - center.x, point.y - center.y, point.z - center.z)))
+    camera.fit(center, radius)
+    return true
+  }
+
   function refresh(): void {
     shapes = resolveAll(doc)
+    const current = bodies()
+    if (current.some(object => !knownBodies.has(object.id))) fitBodies()
+    knownBodies = new Set(current.map(object => object.id))
     sync.update({
       objects: doc.objects, shapes, selectedId: doc.activeId, coarse, scale: profile.sceneScale,
       arrows: tools.action === 'select' ? select.arrows() : null, view: viewOptions,
@@ -522,7 +560,9 @@ export function startApp(): void {
       return false
     }
     if (tools.action !== 'select') toolbar.select('select', { showToast: false })
+    rememberBodies()
     if (file.camera) camera.setPose(file.camera)
+    else if (!fitBodies()) camera.setView('standard')
     refresh()
     return true
   }
@@ -736,11 +776,15 @@ export function startApp(): void {
 
   function undo(): void {
     settle()
-    if (doc.undo()) refresh()
+    if (!doc.undo()) return
+    rememberBodies()
+    refresh()
   }
   function redo(): void {
     settle()
-    if (doc.redo()) refresh()
+    if (!doc.redo()) return
+    rememberBodies()
+    refresh()
   }
   function removeSelected(): void {
     const id = doc.activeId
@@ -770,12 +814,16 @@ export function startApp(): void {
     environment.setGroundMode(groundMode)
     refresh()
   })
-  button('standardView').addEventListener('click', () => {
+  /** The standard direction, close enough to the solids and spheres to see them well. */
+  function standardView(): void {
     camera.setView('standard')
+    fitBodies()
     frame.request()
-  })
+  }
+  button('standardView').addEventListener('click', standardView)
   createViewMenu(button('viewMenuButton'), viewOptions, {
     onDirection(direction) {
+      if (direction === 'standard') return standardView()
       camera.setView(direction)
       frame.request()
     },
@@ -944,6 +992,7 @@ export function startApp(): void {
     display: () => ({ ...profile }),
   }
   restoreAutosave()
+  rememberBodies()
   refresh()
   suggestBoard()
   bindAndroid({ back: closeSomething, pause: autosave, openFile: uri => void openHandedFile(uri) })

@@ -41,6 +41,9 @@ export interface Eye {
 }
 
 const FOV = 75
+/** Content is fitted with this much room around it, and never smaller than this radius. */
+const FIT_MARGIN = 1.25
+const FIT_MIN_RADIUS = 4
 
 /**
  * The perspective and orthographic cameras and the orbit controls that move whichever is
@@ -152,6 +155,26 @@ export class CameraState implements Projector {
       const distance = this.camera.position.distanceTo(this.controls.target)
       const direction = DIRECTIONS[view]
       this.camera.position.copy(this.controls.target).addScaledVector(new THREE.Vector3(direction.x, direction.y, direction.z), distance)
+    }
+    this.finish()
+  }
+
+  /**
+   * Look at a sphere of content from the current direction so that it fills about 80 % of the
+   * view; tiny content is shown at FIT_MIN_RADIUS so a single small solid is not blown up.
+   */
+  fit(center: Vec3, radius: number): void {
+    this.settle()
+    const direction = this.camera.position.clone().sub(this.controls.target).normalize()
+    const vertical = THREE.MathUtils.degToRad(FOV / 2)
+    const horizontal = Math.atan(Math.tan(vertical) * this.width / this.height)
+    const distance = Math.max(radius, FIT_MIN_RADIUS) * FIT_MARGIN / Math.sin(Math.min(vertical, horizontal))
+    this.controls.target.set(center.x, center.y, center.z)
+    this.camera.position.copy(this.controls.target).addScaledVector(direction, distance)
+    if (this.isOrthographic) {
+      this.halfHeight = distance * Math.tan(vertical)
+      this.orthographic.zoom = 1
+      this.updateFrustum()
     }
     this.finish()
   }

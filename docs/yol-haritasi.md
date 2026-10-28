@@ -512,8 +512,12 @@ Ekran türü **Akıllı tahta**; tahtanın dokunmatiği bu düzende çalışmad�
   donanımında değil).
 - **Gözlem (Claude, ekran görüntüsü):** açılışta kamera eksenleri ±20 gösterecek uzaklıkta;
   2–3 birimlik cisimler ekranın ortasında küçük kalıyor ve köşe adları üst üste biniyor.
-  **Öneri:** cisim eklenince (ya da Ana görünüm düğmesinde) kamerayı nesnelere sığdırmak;
-  kullanıcı onayı bekliyor.
+  **Öneri:** cisim eklenince (ya da Ana görünüm düğmesinde) kamerayı nesnelere sığdırmak.
+  **Uygulandı (2026-10-28, kullanıcı onayıyla):** yeni bir cisim ya da küre (komut, araç,
+  dosya) eklenince kamera bakış yönünü koruyarak görünen bütün cisimlere ve kürelere yaklaşır
+  ya da uzaklaşır (en az 4 birim yarıçaplık bir bölge, çevresinde %25 pay); Ana görünüm
+  standart yönden yine cisimlere sığdırır. Geri al, yinele ve otomatik kayıttan açılış
+  kamerayı oynatmaz; kamerası kayıtlı dosya kendi kamerasıyla açılır.
 - **Masaüstü sürüm (Electron), tahtada, 2026-10-28:** dokunmatik gelmediği için "Otomatik"
   ekran türü doğru biçimde "Bilgisayar" seçti; menüden "Akıllı tahta" seçilince başlık çubuğu,
   araç çubuğu ve kartlar web'deki gibi büyüdü. Dört örnek cisim komutla oluştu.

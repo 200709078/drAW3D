@@ -514,6 +514,14 @@ Ekran türü **Akıllı tahta**; tahtanın dokunmatiği bu düzende çalışmad�
   2–3 birimlik cisimler ekranın ortasında küçük kalıyor ve köşe adları üst üste biniyor.
   **Öneri:** cisim eklenince (ya da Ana görünüm düğmesinde) kamerayı nesnelere sığdırmak;
   kullanıcı onayı bekliyor.
+- **Masaüstü sürüm (Electron), tahtada, 2026-10-28:** dokunmatik gelmediği için "Otomatik"
+  ekran türü doğru biçimde "Bilgisayar" seçti; menüden "Akıllı tahta" seçilince başlık çubuğu,
+  araç çubuğu ve kartlar web'deki gibi büyüdü. Dört örnek cisim komutla oluştu.
+- **Bulunan ve düzeltilen (2026-10-28):** fiziksel klavyeyle `(` yazınca `)` kendiliğinden
+  ekleniyor ama elle yazılan `)` üzerinden geçmiyordu; `Küre((5,0,0),1.5)` → "Parantezler dengeli
+  olmalı". Artık geçiyor (drAW2D'de de; `command-input.ts` iki projede aynı).
+- **Kullanıcı kararı (2026-10-28):** matematik klavyesinin 123 sekmesinde `a` kalır; drAW3D'de
+  `x` kullanılmaz (x, y, z ayrılmış; denklem yok). Düzlem denklemi eklenirse yeniden düşünülür.
 - **Bekleyen:** dokunma (tek parmakla döndürme, iki parmakla yakınlaştırma, araç hareketleri),
   "Otomatik" ekran türünün tahtayı tanıması ve akıcılık tahtanın kendi bilgisayarında (Yol 2/3).
 

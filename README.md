@@ -4,7 +4,7 @@ Web ve masaüstü için **3B geometri ve açınım (net)** uygulaması. Three.js
 geliştirilmiştir; aynı çıktı tarayıcıda ve Electron masaüstü uygulamasında (Linux AppImage/deb,
 Windows NSIS) çalışır.
 
-made by **mADEMatik** — [madematik.com](https://www.madematik.com)
+**mADEMatik Solutions** — [madematik.com](https://www.madematik.com)
 
 İlgili proje: [drAW2D](https://github.com/200709078/drAW2D)
 

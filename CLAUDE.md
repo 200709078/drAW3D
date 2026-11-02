@@ -53,9 +53,9 @@ GitHub Releases is the only place packages are published; madematik.com and the 
 - **Asset names have no version:** `drAW3D-linux-amd64.deb`, `drAW3D-linux-x86_64.AppImage`, `drAW3D-win-x64.exe`, `drAW3D-android.apk` (`build.artifactName` is `${productName}-${os}-${arch}.${ext}`), so `https://github.com/200709078/drAW3D/releases/latest/download/<name>` always fetches the newest release; the README "İndir" section and madematik.com use these links. Don't add the version back.
 - **Notes and checksums:** `scripts/release-assets.mjs` writes `SHA256SUMS.txt` and the Turkish release notes (sizes, DEB dependencies and installed size read from the packages). Change the notes in the script, not on GitHub — the next run overwrites them.
 - **Local copy:** `npm run dist*` output is for local testing only and differs byte-wise from the published files. To make `release/` match GitHub: `rm -rf release && gh release download vX.Y.Z -D release`, then `sha256sum -c SHA256SUMS.txt` inside `release/`.
-- **Shared files:** the workflow and `scripts/release-assets.mjs` are identical copies in drAW, drAW2D and drAW3D (app name and version come from `package.json`) — change all three together. The Android job skips itself in a project without `android/` (all three have one since 2026-10-25). Actions: `checkout`/`setup-node`/`upload-artifact` v7, `download-artifact` v8 (Node 24).
+- **Shared files:** the workflow and `scripts/release-assets.mjs` are identical copies in drAW, drAW2D, drAW3D and awPDF (app name and version come from `package.json`) — change all four together. The Android job skips itself in a project without `android/` (all four have one). Actions: `checkout`/`setup-node`/`upload-artifact` v7, `download-artifact` v8 (Node 24).
 - **Trigger quirk:** push a new or changed workflow file before the tag; a tag pushed in the same push as a new workflow did not trigger it.
-- **Metadata:** license MIT (same text in all three repos), deb `Section: education`, `.desktop` categories include `Education`.
+- **Metadata:** license MIT (same text in all four repos), deb `Section: education`, `.desktop` categories include `Education`.
 
 ## Shared code with drAW2D
 

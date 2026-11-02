@@ -1,6 +1,6 @@
 // GitHub sürümü için SHA256SUMS.txt ve RELEASE_NOTES.md üretir.
 // Dosya adlarında sürüm yoktur; releases/latest/download/<ad> bağlantısı hep son sürümü indirir.
-// drAW, drAW2D ve drAW3D aynı dosyayı kullanır; ad, sürüm ve depo package.json'dan okunur.
+// drAW, drAW2D, drAW3D ve awPDF aynı dosyayı kullanır; ad, sürüm ve depo package.json'dan okunur.
 // Kullanım: node scripts/release-assets.mjs <paket-klasörü>
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -98,7 +98,7 @@ ${depends ? `- **DEB bağımlılıkları:** ${depends}${recommends ? ` (önerile
 
 - **AppImage:** Dosyayı indirin, \`chmod +x ${appImage}\` ile çalıştırma izni verin ve açın.
 - **DEB:** \`sudo apt install ./${deb}\` komutuyla veya dosyayı çift tıklayıp paket yöneticisiyle kurun.
-${apk ? `- **APK (Android):** Dosyayı telefonda indirip açın. Uygulama Play Store dışından kurulduğu için Android "bilinmeyen uygulamaları yükleme" izni ister; tarayıcıya veya dosya yöneticisine bir kez izin verin. Sonraki sürümler aynı şekilde üzerine kurulur, çizimler silinmez.\n` : ""}- **exe:** Dosyayı indirip çalıştırın; yönlendirmeli kurulum açılır. Yönetici yetkisi gerekmez, masaüstü ve başlangıç menüsü kısayolları oluşturulur. Paket dijital imzalı olmadığı için Windows SmartScreen "bilinmeyen yayıncı" uyarısı gösterebilir; **Ek bilgi > Yine de çalıştır** ile devam edin.
+${apk ? `- **APK (Android):** Dosyayı telefonda indirip açın. Uygulama Play Store dışından kurulduğu için Android "bilinmeyen uygulamaları yükleme" izni ister; tarayıcıya veya dosya yöneticisine bir kez izin verin. Sonraki sürümler aynı şekilde üzerine kurulur, uygulama verileri silinmez.\n` : ""}- **exe:** Dosyayı indirip çalıştırın; yönlendirmeli kurulum açılır. Yönetici yetkisi gerekmez, masaüstü ve başlangıç menüsü kısayolları oluşturulur. Paket dijital imzalı olmadığı için Windows SmartScreen "bilinmeyen yayıncı" uyarısı gösterebilir; **Ek bilgi > Yine de çalıştır** ile devam edin.
 
 ### Dosya bütünlüğü
 

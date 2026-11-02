@@ -1,6 +1,6 @@
 # Linux (.deb, AppImage), Windows (.exe) ve android/ klasörü olan projelerde Android (.apk)
 # paketlerini üretip GitHub sürümüne yükler. Uygulama adı ve sürüm package.json'dan okunur.
-# drAW, drAW2D ve drAW3D aynı dosyayı kullanır; android/ klasörü olmayan projede Android işi atlanır.
+# drAW, drAW2D, drAW3D ve awPDF aynı dosyayı kullanır; android/ klasörü olmayan projede Android işi atlanır.
 # Android APK'sı şu secret'larla imzalanır: ANDROID_KEYSTORE_BASE64 (anahtar dosyasının
 # base64'ü), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
 # - "v0.0.4" gibi bir etiket gönderilince o sürüm oluşturulur (package.json sürümüyle aynı olmalı).

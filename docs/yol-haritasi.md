@@ -132,6 +132,10 @@ adı `draw3d-release.jks` iken `draw-general-release.jks` oldu. Ad imzayı ve se
 etkilemez. İmza ortam değişkenleri iki projede ortak adlarla `ANDROID_KEYSTORE*` oldu;
 `android/app/build.gradle` eski `DRAW3D_*` adlarını da okur.
 
+**Anahtarın yeni adı (2026-11-03, kullanıcı kararı):** dosya `~/Belgeler/YEDEKLER/madematik-release.jks`,
+takma adı `madematik` oldu; `ANDROID_KEYSTORE_BASE64` ve `ANDROID_KEY_ALIAS` secret'ları dört depoda
+yenilendi. Sertifika (`CN=mADEMatik`, SHA-256 `84f78df0…b856f1fa96`) aynı kaldı, imza değişmedi.
+
 **İlk telefon denemesi (2026-10-25):** SVG kaydı çalıştı. İki hata bulundu ve
 düzeltildi:
 - Belge `ad.drw3.json` olarak kaydediliyordu: türü `application/json` verilince Android

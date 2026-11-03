@@ -23,6 +23,7 @@ npm run test:electron    # build, then open the app from file:// and check it (n
 npm run dist:linux | dist:win
 npm run android:sync     # build + copy dist/ into android/ (Capacitor)
 npm run android:apk      # release APK; signed when ANDROID_KEYSTORE, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD are set (DRAW3D_* still read)
+npm run android:aab      # release AAB for Google Play (bundleRelease), signed the same way
 bash scripts/icons.sh    # regenerate every icon from public/img/app-icon.svg: web, build/icons, build/icon.ico, Android (Inkscape + ImageMagick)
 ```
 
@@ -51,6 +52,7 @@ GitHub Releases is the only place packages are published; madematik.com and the 
 - **Version:** `package.json` is the single source, so the local and GitHub versions are always the same. New release: `npm version patch` (or `minor`), then `git push --follow-tags`. The workflow fails if the tag `vX.Y.Z` differs from `package.json`.
 - **Rebuild without a new version:** Actions → "Sürüm paketleri" → Run workflow replaces the assets of the current version (creates the release if missing). Build only, nothing published: `gh workflow run release.yml -f yayinla=false`, then `gh run download --name paket-Windows -D release`.
 - **Asset names have no version:** `drAW3D-linux-amd64.deb`, `drAW3D-linux-x86_64.AppImage`, `drAW3D-win-x64.exe`, `drAW3D-android.apk` (`build.artifactName` is `${productName}-${os}-${arch}.${ext}`), so `https://github.com/200709078/drAW3D/releases/latest/download/<name>` always fetches the newest release; the README "İndir" section and madematik.com use these links. Don't add the version back.
+- **Google Play:** the Android job also builds `drAW3D-android.aab` (`bundleRelease`, same key; on Play this key is the app signing key and the upload key, the user's 2026-11-03 decision). It is never attached to the GitHub release: it is the `play-Android` artifact (kept 30 days), downloaded with `gh run download <run> --name play-Android` and uploaded to Play Console by the user.
 - **Notes and checksums:** `scripts/release-assets.mjs` writes `SHA256SUMS.txt` and the Turkish release notes (sizes, DEB dependencies and installed size read from the packages). Change the notes in the script, not on GitHub — the next run overwrites them.
 - **Local copy:** `npm run dist*` output is for local testing only and differs byte-wise from the published files. To make `release/` match GitHub: `rm -rf release && gh release download vX.Y.Z -D release`, then `sha256sum -c SHA256SUMS.txt` inside `release/`.
 - **Shared files:** the workflow and `scripts/release-assets.mjs` are identical copies in drAW, drAW2D, drAW3D and awPDF (app name and version come from `package.json`) — change all four together. The Android job skips itself in a project without `android/` (all four have one). Actions: `checkout`/`setup-node`/`upload-artifact` v7, `download-artifact` v8 (Node 24).

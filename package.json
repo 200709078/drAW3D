@@ -30,6 +30,7 @@
     "test:electron": "npm run build && node scripts/test-electron.mjs",
     "android:sync": "npm run build && cap sync android",
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleRelease",
+    "android:aab": "npm run android:sync && cd android && ./gradlew bundleRelease",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
     "dist:linux": "npm run build && electron-builder --linux AppImage deb",

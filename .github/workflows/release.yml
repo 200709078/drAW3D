@@ -3,6 +3,8 @@
 # drAW, drAW2D, drAW3D ve awPDF aynı dosyayı kullanır; android/ klasörü olmayan projede Android işi atlanır.
 # Android APK'sı şu secret'larla imzalanır: ANDROID_KEYSTORE_BASE64 (anahtar dosyasının
 # base64'ü), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+# Google Play için aynı anahtarla imzalı bir AAB de üretilir. GitHub sürümüne girmez, Play
+# Console'a elle yüklenir: gh run download --name play-Android -D release
 # - "v0.0.4" gibi bir etiket gönderilince o sürüm oluşturulur (package.json sürümüyle aynı olmalı).
 # - Actions sekmesindeki "Run workflow" düğmesi, package.json'daki sürümün paketlerini yeniden
 #   üretip mevcut sürümdeki dosyaların yerine koyar (sürüm yoksa oluşturur).
@@ -110,7 +112,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: APK üret ve imzala
+      - name: APK ve AAB üret ve imzala
         if: steps.proje.outputs.android == 'true'
         shell: bash
         env:
@@ -129,12 +131,20 @@ jobs:
           npm ci
           npm run build
           npx cap sync android
-          (cd android && ./gradlew assembleRelease --no-daemon)
+          (cd android && ./gradlew assembleRelease bundleRelease --no-daemon)
           name="$(node -p "const p = require('./package.json'); p.build?.productName ?? p.productName")"
           mkdir -p release
           cp android/app/build/outputs/apk/release/app-release.apk "release/$name-android.apk"
+          cp android/app/build/outputs/bundle/release/app-release.aab "release/$name-android.aab"
           # İmza denetimi: imzasız ya da bozuk APK yayımlanmaz.
           "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify --print-certs "release/$name-android.apk"
+          # AAB JAR imzalıdır; keytool yalnız imzalı dosyada sertifika (SHA256 satırı) yazar.
+          cert="$(keytool -printcert -jarfile "release/$name-android.aab")"
+          echo "$cert"
+          if ! grep -q "SHA256:" <<< "$cert"; then
+            echo "::error::AAB imzasız."
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v7
         if: steps.proje.outputs.android == 'true'
@@ -144,6 +154,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # Play Console'a yüklenecek paket; elle yüklendiği için ötekilerden uzun saklanır.
+      - uses: actions/upload-artifact@v7
+        if: steps.proje.outputs.android == 'true'
+        with:
+          name: play-Android
+          path: release/*.aab
+          if-no-files-found: error
+          retention-days: 30
+
   release:
     name: GitHub sürümünü güncelle
     needs: [build, android]
@@ -152,9 +171,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Yalnız paket-* artifact'ları; play-Android (AAB) GitHub sürümüne girmez.
       - uses: actions/download-artifact@v8
         with:
           path: paketler
+          pattern: paket-*
           merge-multiple: true
 
       - name: Sağlama dosyası ve sürüm notu

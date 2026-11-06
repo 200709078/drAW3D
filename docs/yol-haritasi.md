@@ -5,6 +5,12 @@ nesne kartlarını, komut girişini ve önerilen özelliklerin hepsini plana ald
 Uygulananlar "Uygulandı" notuyla işaretlidir. Sıra bir öneridir; neyin ne zaman
 yapılacağına kullanıcı karar verir ve her adımdan sonra durulur.
 
+## Paket bilgisindeki e-posta (2026-11-06, kullanıcı bildirdi)
+
+Pardus ETAP tahtada Paket Kurucu'nun Detaylar sekmesinde drAW ailesinde olmayan `madematik@madematik.com` görünüyordu,
+awPDF'te `ademvarol@madematik.com`. Kaynak 2026-11-03'te düzeltilmişti ama o tarihten sonra sürüm çıkmamıştı;
+yeni sürüm bu adresi taşır. **Yapıldı (2026-11-06).**
+
 ## Planlanan sıra (2026-10-24)
 
 **Bekliyor (2026-10-24):** Kullanıcı geçişten sonra bu listedeki işleri beklemeye

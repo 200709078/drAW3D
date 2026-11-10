@@ -57,7 +57,7 @@ test.describe('akıllı tahta', () => {
     await page.locator('#keyboardtab-letters').click()
     await press(page, 'k', 'ü', 'r', 'e')
     await expect(search).toHaveValue('küre')
-    await page.locator('.help-close').click()
+    await page.locator('#help-popup .help-close').click()
     await page.locator('#keyboardtab-numbers').click()
     await press(page, '7')
     await expect(page.locator('#rightWrapper #mathKeyboard')).toBeVisible()

@@ -141,7 +141,7 @@ test('telefon: otomatik olarak düşük çizim çözünürlüğü ve küçük g�
   }
 
   // The math keyboard keeps one height on every tab, and the input stays above it.
-  await page.locator('#btnCalc').click()
+  await page.locator('#panelHandle').click()
   await page.locator('#giris').click()
   await expect(page.locator('#mathKeyboard')).toBeVisible()
   const heights: number[] = []

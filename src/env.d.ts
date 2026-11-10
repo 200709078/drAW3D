@@ -1,3 +1,6 @@
+/** The app's version from package.json (vite.config.ts `define`), shown in Hakkında. */
+declare const __APP_VERSION__: string
+
 /** Window controls exposed by the Electron preload; absent in the browser. */
 interface DesktopWindowControls {
   minimize(): void

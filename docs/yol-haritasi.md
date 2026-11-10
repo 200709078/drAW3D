@@ -553,3 +553,70 @@ Tabletler ve Android'li akıllı tahtalar yatay ekranlıdır, dikeye kilitlemek 
 yön ancak tam ekranda kilitlenebilir (`screen.orientation.lock`); kilitsiz yatayda bir "telefonu
 dik tutun" uyarısı alternatif. Açık sorular: yalnız telefonda mı, yalnız Android paketinde mi,
 web'de de mi? Kullanıcı kararı bekliyor.
+
+## Ortak araç çubuğu stili (2026-11-10, kullanıcı isteği; awCELL, awPDF, drAW, drAW2D, drAW3D; kodlanmadı)
+
+Kullanıcı: "Bu menü sistemini awPDF ve drAW kardeşlerde de uygulayabileceğimiz bir şey olmalı. Aynı stile çekebilmek
+için." awCELL'de araç çubuğu 39 düğmeden 13 düğmeye indirilirken kararlaştırıldı.
+
+**Ortak kurallar** (beş projenin yol haritasında aynı; birinde değişirse ötekiler de güncellenir; ayrıntılı not ve
+gerekçeler `awCELL/docs/yol-haritasi.md`'de):
+
+1. **Taşma menüsü ☰ / ✕:** Sığmayan düğmeler sondan başlayarak ☰ menüsüne geçer; açıkken düğme ✕ olur ("Menüyü aç" /
+   "Menüyü kapat"). "⋯" ve kaydırma okları kullanılmaz; pencere boyutu değişince yeniden hesaplanır. Örnek: awPDF
+   `src/ui/toolbar.ts` (`mountOverflowMenu`).
+2. **Kapanma:** ✕, dışarıya dokunma, Esc, Android geri düğmesi, menüden bir iş seçme (art arda seçim yapılan gruplar
+   hariç).
+3. **Gruplar:** Çubukta grup başına tek düğme ve ▾; tıklayınca açılır, üstüne gelince değil; aynı anda tek pencere.
+4. **Son kullanılan:** Grup düğmesi son seçilen aracı/işi gösterir (drAW2D'deki gibi).
+5. **Durum gösterimi:** Grubun içindeki etkin seçim grup düğmesinden de anlaşılır.
+6. **☰ menüsünün içi:** Grup başlıkları simge ve etiketle görünür, yerinde (akordeon gibi) açılır, aynı anda tek grup
+   açık. Herkesin tanıdığı simgeler grup içinde yalnız simge olarak yan yana; yanlış anlaşılabilecekler simge ve
+   etiketle. Tek düğmeler simge ve etiketle, doğrudan iş yapar. Gerekçe: dokunmatikte ipucu (`title`) çıkmaz.
+7. Dokunma alanları çubukta ve menüde aynı büyüklükte kalır.
+
+Ortak kod paketi yok; her proje kendi kopyasını yazar, davranış aynı tutulur. Önce awCELL'de uygulanacak; bu proje
+sonra, kullanıcı onayıyla.
+
+**drAW3D'ye uyarlama (öneri, açık sorular):**
+- Gruplar ve son kullanılan aracı gösteren grup düğmesi drAW2D'deki gibi zaten var.
+- Kodda "⋯" taşma menüsü bulunmadı; dar ekranda alt paneldeki Araçlar sekmesi kullanılıyor. Geniş düzende çubuk
+  taşarsa ☰ / ✕ menüsü eklenir.
+- Açık soru: dar düzendeki alt panel kalsın mı, yoksa ☰ menüsüyle mi birleşsin? (drAW2D ile aynı karar verilir.)
+
+## Hakkında penceresi (2026-11-10, kullanıcı kararı; drAW2D'de uygulandı; bu projede kodlanmadı)
+
+Kullanıcı: "Hakkında yardım gibi ayrı pencerede açılsa nasıl olur?" → "tamam öyle yapalım. Diğer kardeşlere de bunu not et
+(özellikle hakkında kısmı hepsinde olmalı)." Aile kuralı: drAW, drAW2D, drAW3D, awPDF ve awCELL'in **hepsinde** Hakkında olur.
+
+- **Ayrı küçük pencere:** uygulamanın yardım/diyalog pencereleriyle aynı görünüş (başlık şeridi, ×). Kapanma: ×, dışarıya
+  dokunma, Esc, Android geri tuşu.
+- **İçerik:** uygulamanın simgesi, adı ve sürümü (`package.json`'dan otomatik), bir satırlık açıklama; mADEMatik Solutions ve
+  madematik.com bağlantısı; indirme bağlantısı madematik.com'daki proje sayfasının indirme bölümüne (`https://madematik.com/projelerim/draw3d#indirmeler`; kullanıcı kararı 2026-11-10); lisans MIT; "İletişim: ademvarol@madematik.com" (seçilebilir düz yazı; e-posta bağlantıları tahtada ve telefonda çoğu zaman bir şey açmaz).
+- **Bağlantılar** sistemin tarayıcısında açılır (Electron: `shell.openExternal`; Android: uygulamanın içinde değil, tarayıcıda).
+- **Yer:** Dosya menüsünün en altı (drAW2D kararı); Yardım da hem çubukta hem Dosya menüsünde kalır.
+- **drAW3D'ye uyarlama:** drAW2D ile aynı: Dosya menüsünün en altında Yardım ve Hakkında; Hakkında, Yardım penceresiyle
+  aynı görünüşte ayrı küçük pencere.
+
+## Ortak araç çubuğu, alt panel tutamacı, iki hata, Yardım ve Hakkında (2026-11-10, kullanıcı isteği; uygulandı)
+
+Kullanıcı: "drAW3D'de ☰ / ✕ taşma menüsünü ekleyelim; alt paneli açan düğmeyi drAW2D ile aynı şekilde yapalım; drAW2D'de
+düzeltilen iki hata (Android yazı büyütme, telefonda görünen kısayollar) burada da düzeltilsin; yardım, hakkında vb. unutma."
+
+**Uygulandı (2026-11-10):**
+- **☰ / ✕ taşma menüsü** (drAW2D'nin `main-toolbar.ts` kopyası): çubuk sığmayınca sırayla Yardım, Standart Görünüm, Düzlemi
+  Gizle/Göster, Tümünü Göster, Gizle, Sil, sonra sondaki araç grupları menüye geçer; Dosya, Geri Al, Yinele, Görünüm (kendi
+  menüsü var) ve panel düğmesi çubukta kalır. ☰ sağ uçta. Menüde gruplar kapalı başlık, dokununca yerinde açılır; devre dışı
+  işlem menüde de devre dışı ve adıyla (durum açıklaması değil) görünür. Telefonda düğme dizisinin yana kaydırılması kalktı.
+  (Bu son iki iyileştirme drAW2D'ye de geçti.) Y11 notundaki iki konu (dar ekranda kaydırılan düğmeler, panel düğmesinin üst
+  çubukta olması) bununla ve alt panel tutamacıyla çözüldü.
+- **Alt panel telefonda kendi tutamacıyla** açılıp kapanır (drAW2D ile aynı): ok yok; kapalı panel altta tutamaç ve Cebir /
+  Araçlar sekmelerini bırakır; dokunma, yukarı kaydırma ya da sekme açar; dokunma, aşağı sürükleme ya da geri tuşu kapatır.
+- **Android yazı büyütme:** `MainActivity` WebView yazı ölçeğini 100'de tutar.
+- **Kısayollar:** klavyesiz dokunmatik cihazda Dosya menüsü kısayol ipuçlarını göstermez.
+- **Yardım ve Hakkında:** Dosya menüsünün en altında; Yardım ayrıca çubukta, F1 ile açılır, Esc ile kapanır. Hakkında drAW2D'deki
+  küçük pencere (simge, sürüm, "3B geometri ve cisim açınımları", mADEMatik Solutions, İndir → madematik.com/projelerim/draw3d,
+  MIT, İletişim).
+- Dosya simgesi açık gri (drAW2D ile aynı `toolbar.css`).
+- Test: `tests/shell-integration.spec.ts`; bütün testler geçti (207). Telefonda ve tahtada denenmedi.
+

@@ -11,6 +11,8 @@ export interface FileMenuHandlers {
   onNetPrint(tabs: boolean): void
   /** Only in the desktop app, which writes PDFs itself. */
   onNetPdf?(tabs: boolean): void
+  onHelp(): void
+  onAbout(): void
 }
 
 function loadTabs(): boolean {
@@ -75,4 +77,8 @@ export function createFileMenu(button: HTMLButtonElement, handlers: FileMenuHand
   item('netPrint', 'Yazdır', '', () => handlers.onNetPrint(tabs.checked))
   const pdf = handlers.onNetPdf
   if (pdf) item('netPdf', 'PDF olarak kaydet', '', () => pdf(tabs.checked))
+  // Yardım is also in the toolbar; Hakkında lives only here, at the bottom (family rule).
+  menu.append(Object.assign(document.createElement('hr'), { className: 'menu-separator' }))
+  item('fileHelp', 'Yardım', 'F1', handlers.onHelp)
+  item('fileAbout', 'Hakkında', '', handlers.onAbout)
 }

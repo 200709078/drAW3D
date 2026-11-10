@@ -105,7 +105,14 @@ export function createHelpPopup({ input, onExample, onClose }: HelpPopupOptions)
     }
   }
 
-  document.querySelector('.help-close')?.addEventListener('click', close)
+  document.querySelector('#help-popup .help-close')?.addEventListener('click', close)
+  // Escape closes the window like ×, before any other Escape handling.
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && popup?.style.display === 'flex') {
+      event.stopPropagation()
+      close()
+    }
+  }, true)
   for (const example of document.querySelectorAll('.example')) {
     example.addEventListener('click', () => {
       close()

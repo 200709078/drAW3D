@@ -28,6 +28,7 @@ import type { ViewOptions } from '../rendering/view-options'
 import { bindCommandInput } from '../ui/command-input'
 import { bindCommandTemplates } from '../ui/command-templates'
 import { createFileMenu } from '../ui/file-menu'
+import { createAboutPopup } from '../ui/about-popup'
 import { createHelpPopup } from '../ui/help-popup'
 import { createToolbar, type ToolbarApi } from '../ui/main-toolbar'
 import { createMathKeyboard } from '../ui/math-keyboard'
@@ -724,7 +725,10 @@ export function startApp(): void {
         }
       },
     } : {}),
+    onHelp: () => help.open(),
+    onAbout: () => about.open(),
   })
+  const about = createAboutPopup()
 
   const toolbar: ToolbarApi = createToolbar({
     groups: document.getElementById('toolGroups')!,
@@ -744,6 +748,9 @@ export function startApp(): void {
       if (sidePanel.isHidden) sidePanel.setHidden(false)
       sidePanel.showTab('tools')
     },
+    // Dar çubukta ☰ menüsüne bu sırayla geçer (az kullanılan önce); Dosya, Geri Al, Yinele, Görünüm
+    // (kendi menüsü var) ve panel düğmesi çubukta kalır.
+    overflowActions: ['helpMenuButton', 'standardView', 'groundToggle', 'showAll', 'hide', 'delete'].map(id => button(id)),
   })
 
   const sidePanel = createSidePanel(() => {
@@ -917,6 +924,11 @@ export function startApp(): void {
   })
 
   window.addEventListener('keydown', event => {
+    if (event.key === 'F1' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault()
+      help.open()
+      return
+    }
     const target = event.target as HTMLElement | null
     const key = event.key.toLowerCase()
     // File shortcuts work everywhere, also while typing in the command input.
@@ -1002,6 +1014,10 @@ export function startApp(): void {
     if (document.querySelector('#mainToolbar [aria-expanded="true"]')) {
       // Every toolbar menu closes on Escape.
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      return true
+    }
+    if (about.isOpen) {
+      about.close()
       return true
     }
     if (document.getElementById('help-popup')?.style.display === 'flex') {

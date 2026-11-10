@@ -100,6 +100,18 @@ body {
   filter: grayscale(1) brightness(0.45);
 }
 
+/* The file icon is a filled sheet: at 0.45 it looked black. Lighter, but still clearly enabled
+   (a light grey like disabled undo/redo would read as unavailable). */
+#fileMenuButton img {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.toolbar-button[aria-pressed="true"],
+.more-menu .tool-menu-item[aria-checked="true"] {
+  background: var(--toolbar-active);
+  border-color: var(--toolbar-active-border);
+}
+
 .toolbar-button:disabled {
   cursor: default;
   opacity: 0.35;
@@ -138,8 +150,13 @@ body {
   cursor: pointer;
 }
 
-.tool-menu-item:hover {
+.tool-menu-item:hover:not(:disabled) {
   background: #eef2f8;
+}
+
+.tool-menu-item:disabled {
+  cursor: default;
+  opacity: 0.4;
 }
 
 .tool-menu-item.is-active {
@@ -168,6 +185,88 @@ body {
   margin-left: auto;
 }
 
+/* Items moved into the ☰ menu leave the bar. */
+.toolbar-button[hidden],
+.tool-group[hidden],
+.more-menu-wrapper[hidden] {
+  display: none;
+}
+
+.more-menu-wrapper {
+  position: relative;
+  display: flex;
+}
+
+.more-menu-wrapper .toolbar-button.is-active {
+  background: var(--toolbar-active);
+  border-color: var(--toolbar-active-border);
+}
+
+/* Opens leftwards from the right end of the bar and scrolls on short screens. */
+.more-menu {
+  left: auto;
+  right: 0;
+  max-height: calc(100vh - var(--toolbar-height) - 16px);
+  overflow-y: auto;
+}
+
+/* A moved tool group: a closed heading that opens its tools in place (one group at a time). */
+.more-menu-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.more-menu-group:hover {
+  background: #eef2f8;
+}
+
+.more-menu-group.is-active {
+  border-color: var(--toolbar-active-border);
+}
+
+.more-menu-group[aria-expanded="true"] {
+  background: var(--toolbar-active);
+}
+
+.more-menu-group img {
+  flex: none;
+  pointer-events: none;
+}
+
+.more-menu-caret {
+  margin-left: auto;
+  border-style: solid;
+  border-width: 5px 0 5px 7px;
+  border-color: transparent transparent transparent #64748b;
+}
+
+.more-menu-group[aria-expanded="true"] .more-menu-caret {
+  transform: rotate(90deg);
+}
+
+.more-menu-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 4px 19px;
+  padding-left: 8px;
+  border-left: 2px solid var(--toolbar-active-border);
+}
+
+.more-menu-group-items[hidden] {
+  display: none;
+}
+
 /* The narrow layout shows only the active tool; it opens the tools tab. */
 .current-tool {
   display: none;
@@ -176,6 +275,18 @@ body {
 .panel-tabs,
 .tools-panel {
   display: none;
+}
+
+/* Dar masaüstünde bütün gruplar menüye düşmeden sığsın. */
+@media (min-width: 701px) and (max-width: 1180px) and (pointer: fine) {
+  .toolbar-button,
+  .tool-group-button {
+    width: 36px;
+  }
+
+  .tool-groups {
+    gap: 2px;
+  }
 }
 
 @media (max-width: 700px) {

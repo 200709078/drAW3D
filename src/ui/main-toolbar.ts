@@ -21,6 +21,11 @@ export interface ToolbarOptions {
   panel: HTMLElement
   onChange(tool: ToolDefinition, announce: boolean): void
   onOpenTools(): void
+  /**
+   * Rarely used action buttons, in the order they move into the ☰ menu when the bar is
+   * too narrow. After them the tool groups move in, last first (wide layout only).
+   */
+  overflowActions?: HTMLButtonElement[]
 }
 
 declare global {
@@ -152,15 +157,22 @@ export function createToolbar(options: ToolbarOptions): ToolbarApi {
     options.panel.append(section)
   }
 
+  const overflow = createOverflow(options, groups, faces, () => closeMenus(), action => api.select(action),
+    id => lastUsed.get(id)!)
+
   const currentImage = icon(toolDefinition('select'), 28)
   options.currentTool.replaceChildren(currentImage)
   options.currentTool.addEventListener('click', () => options.onOpenTools())
 
   document.addEventListener('pointerdown', event => {
     if (!(event.target instanceof Element) || !event.target.closest('.tool-group')) closeMenus()
+    if (!(event.target instanceof Element) || !event.target.closest('.more-menu-wrapper')) overflow.close()
   })
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeMenus()
+    if (event.key === 'Escape') {
+      closeMenus()
+      overflow.close()
+    }
   })
 
   function render(): void {
@@ -179,6 +191,7 @@ export function createToolbar(options: ToolbarOptions): ToolbarApi {
         button.setAttribute('aria-checked', String(action === active))
       }
     }
+    overflow.markActive(active)
     currentImage.src = `./img/${tool.icon}`
     options.currentTool.title = `Araç: ${tool.label}`
     options.currentTool.setAttribute('aria-label', options.currentTool.title)
@@ -203,5 +216,235 @@ export function createToolbar(options: ToolbarOptions): ToolbarApi {
     },
   }
   render()
+  overflow.fit()
   return api
+}
+
+/** A button's name in the ☰ menu: `data-label` when its title explains a disabled state instead. */
+const actionLabel = (action: HTMLButtonElement) => action.dataset.label ?? action.title
+
+interface Overflow {
+  /** Move as few items as needed into the ☰ menu so that the bar fits. */
+  fit(): void
+  close(): void
+  /** The ☰ button is highlighted while the active tool sits in a moved group. */
+  markActive(action: ToolAction): void
+}
+
+/**
+ * The ☰ / ✕ menu (shared toolbar style of the app family): when the bar is too narrow, rarely used actions and then tool groups (last
+ * first) move into it instead of overlapping. Everything stays in the bar when it fits.
+ */
+function createOverflow(
+  options: ToolbarOptions,
+  groups: ReturnType<typeof visibleGroups>,
+  faces: Map<ToolGroupId, { button: HTMLButtonElement; image: HTMLImageElement }>,
+  closeToolMenus: () => void,
+  select: (action: ToolAction) => void,
+  lastUsedOf: (id: ToolGroupId) => ToolAction,
+): Overflow {
+  const bar = options.groups.closest<HTMLElement>('.main-toolbar') ?? options.groups.parentElement!
+  const actions = options.overflowActions ?? []
+  const wrapper = document.createElement('div')
+  wrapper.className = 'more-menu-wrapper'
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.id = 'moreMenuButton'
+  button.className = 'toolbar-button'
+  button.setAttribute('aria-haspopup', 'menu')
+  const image = document.createElement('img')
+  image.alt = ''
+  image.width = 26
+  image.height = 26
+  button.append(image)
+  const menu = document.createElement('div')
+  menu.id = 'moreMenu'
+  menu.className = 'tool-menu more-menu'
+  menu.setAttribute('role', 'menu')
+  menu.setAttribute('aria-label', 'Diğer')
+  menu.hidden = true
+  wrapper.append(button, menu)
+  wrapper.hidden = true
+  // The button sits at the right end of the moved actions (shared style: ☰ at the bar's right).
+  const anchor = [...actions].sort((a, b) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1).at(-1)
+    ?? bar.lastElementChild
+  anchor?.after(wrapper)
+
+  const groupWrappers = new Map(groups.map(({ group }) => [group.id, faces.get(group.id)!.button.parentElement!]))
+  const moved = { actions: [] as HTMLButtonElement[], groups: [] as ToolGroupId[] }
+  const menuItems = new Map<ToolAction, HTMLButtonElement>()
+  /** On/off actions in the menu, which show their state each time it opens. */
+  const toggles = new Map<HTMLButtonElement, HTMLButtonElement>()
+  /** Every moved action and its menu entry. */
+  const entries = new Map<HTMLButtonElement, HTMLButtonElement>()
+  /** Moved groups as accordion sections: a heading button and its tool list; one is open at a time. */
+  const sections = new Map<ToolGroupId, { heading: HTMLButtonElement; image: HTMLImageElement; list: HTMLElement }>()
+  const groupOf = new Map(groups.flatMap(({ group, tools }) => tools.map(tool => [tool.action, group.id] as const)))
+  const openSection = (id: ToolGroupId | null) => {
+    for (const [sectionId, { heading, list }] of sections) {
+      const open = sectionId === id
+      list.hidden = !open
+      heading.setAttribute('aria-expanded', String(open))
+    }
+  }
+
+  // Closed: ☰ "Diğer Araçlar"; open: ✕ "Menüyü Kapat" (as in awPDF and drAW).
+  const setOpen = (open: boolean) => {
+    menu.hidden = !open
+    button.setAttribute('aria-expanded', String(open))
+    button.title = open ? 'Menüyü Kapat' : 'Diğer Araçlar'
+    button.setAttribute('aria-label', button.title)
+    image.src = open ? './img/close.svg' : './img/menu.svg'
+  }
+  setOpen(false)
+  button.addEventListener('click', () => {
+    const opening = menu.hidden === true
+    closeToolMenus()
+    for (const [action, item] of toggles) item.setAttribute('aria-checked', action.getAttribute('aria-pressed')!)
+    // A moved action that cannot run now (nothing selected, nothing to clear) is disabled in the menu too,
+    // and its name follows the button (a toggle's title changes).
+    for (const [action, item] of entries) {
+      item.disabled = action.disabled
+      item.querySelector('strong')!.textContent = actionLabel(action)
+    }
+    // The group of the active tool opens with the menu; otherwise every group starts closed.
+    const activeGroup = groupOf.get(activeAction)
+    openSection(activeGroup && sections.has(activeGroup) ? activeGroup : null)
+    setOpen(opening)
+  })
+
+  const menuEntry = (img: HTMLImageElement | null, label: string, onClick: () => void) => {
+    const item = document.createElement('button')
+    item.type = 'button'
+    item.className = 'tool-menu-item'
+    item.setAttribute('role', 'menuitem')
+    const text = document.createElement('span')
+    text.className = 'tool-menu-text'
+    const name = document.createElement('strong')
+    name.textContent = label
+    text.append(name)
+    if (img) {
+      const copy = img.cloneNode() as HTMLImageElement
+      copy.width = 24
+      copy.height = 24
+      item.append(copy)
+    }
+    item.append(text)
+    item.addEventListener('click', () => {
+      setOpen(false)
+      onClick()
+    })
+    return item
+  }
+
+  const buildMenu = () => {
+    menu.replaceChildren()
+    menuItems.clear()
+    toggles.clear()
+    entries.clear()
+    for (const action of moved.actions) {
+      const item = menuEntry(action.querySelector('img'), actionLabel(action), () => action.click())
+      entries.set(action, item)
+      if (action.hasAttribute('aria-pressed')) {
+        item.setAttribute('role', 'menuitemcheckbox')
+        toggles.set(action, item)
+      }
+      menu.append(item)
+    }
+    sections.clear()
+    for (const { group, tools } of groups) {
+      if (!moved.groups.includes(group.id)) continue
+      // Shared toolbar style: a group is a closed heading (icon of its last used tool and its
+      // name) that opens in place; tools keep their names, since many look alike.
+      const heading = document.createElement('button')
+      heading.type = 'button'
+      heading.id = `moregroup-${group.id}`
+      heading.className = 'more-menu-group'
+      heading.setAttribute('role', 'menuitem')
+      heading.setAttribute('aria-expanded', 'false')
+      const image = Object.assign(document.createElement('img'), { alt: '', width: 24, height: 24 })
+      const label = document.createElement('span')
+      label.textContent = group.label
+      const caret = document.createElement('span')
+      caret.className = 'more-menu-caret'
+      caret.setAttribute('aria-hidden', 'true')
+      heading.append(image, label, caret)
+      const list = document.createElement('div')
+      list.className = 'more-menu-group-items'
+      list.id = `moregroupitems-${group.id}`
+      list.setAttribute('role', 'group')
+      list.setAttribute('aria-label', group.label)
+      list.hidden = true
+      heading.setAttribute('aria-controls', list.id)
+      heading.addEventListener('click', () => openSection(list.hidden ? group.id : null))
+      for (const tool of tools) {
+        const item = menuEntry(null, tool.label, () => select(tool.action))
+        item.prepend(Object.assign(document.createElement('img'), { src: `./img/${tool.icon}`, alt: '', width: 24, height: 24 }))
+        item.setAttribute('role', 'menuitemradio')
+        menuItems.set(tool.action, item)
+        list.append(item)
+      }
+      sections.set(group.id, { heading, image, list })
+      menu.append(heading, list)
+    }
+  }
+
+  const fits = () => {
+    const groupsShown = getComputedStyle(options.groups).display !== 'none'
+    return bar.scrollWidth <= bar.clientWidth + 1 &&
+      (!groupsShown || options.groups.scrollWidth <= options.groups.clientWidth + 1)
+  }
+
+  let activeAction: ToolAction = 'select'
+  const markActive = (action: ToolAction) => {
+    activeAction = action
+    button.classList.toggle('is-active', menuItems.has(action))
+    // A heading shows its group's last used tool and is marked while the active tool is inside.
+    for (const [id, { heading, image }] of sections) {
+      const shown = toolDefinition(lastUsedOf(id))
+      image.src = `./img/${shown.icon}`
+      heading.classList.toggle('is-active', groupOf.get(action) === id)
+    }
+    for (const [tool, item] of menuItems) {
+      item.classList.toggle('is-active', tool === action)
+      item.setAttribute('aria-checked', String(tool === action))
+    }
+  }
+
+  const fit = () => {
+    for (const action of moved.actions) action.hidden = false
+    for (const id of moved.groups) groupWrappers.get(id)!.hidden = false
+    moved.actions = []
+    moved.groups = []
+    wrapper.hidden = true
+    if (!fits()) {
+      wrapper.hidden = false
+      setOpen(false)
+      const groupsShown = getComputedStyle(options.groups).display !== 'none'
+      // The first group (Taşı) always stays; groups leave from the end.
+      const candidates: (() => void)[] = [
+        ...actions.map(action => () => { action.hidden = true; moved.actions.push(action) }),
+        ...(groupsShown ? groups.slice(1).reverse().map(({ group }) => () => {
+          groupWrappers.get(group.id)!.hidden = true
+          moved.groups.push(group.id)
+        }) : []),
+      ]
+      for (const move of candidates) {
+        if (fits()) break
+        move()
+      }
+    } else {
+      setOpen(false)
+    }
+    buildMenu()
+    markActive(activeAction)
+  }
+
+  let frame = 0
+  new ResizeObserver(() => {
+    cancelAnimationFrame(frame)
+    frame = requestAnimationFrame(fit)
+  }).observe(bar)
+
+  return { fit, close: () => setOpen(false), markActive }
 }

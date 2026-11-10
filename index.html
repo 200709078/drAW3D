@@ -30,13 +30,13 @@
 				<button type="button" id="redo" class="toolbar-button" title="Yinele" disabled>
 					<img src="./img/redo.svg" width="26" height="26" alt="">
 				</button>
-				<button type="button" id="delete" class="toolbar-button" title="Sil" disabled>
+				<button type="button" id="delete" class="toolbar-button" title="Sil" data-label="Sil" disabled>
 					<img src="./img/delete.svg" width="26" height="26" alt="">
 				</button>
-				<button type="button" id="hide" class="toolbar-button" title="Gizle" disabled>
+				<button type="button" id="hide" class="toolbar-button" title="Gizle" data-label="Gizle" disabled>
 					<img src="./img/hide.svg" width="26" height="26" alt="">
 				</button>
-				<button type="button" id="showAll" class="toolbar-button" title="Tümünü Göster" disabled>
+				<button type="button" id="showAll" class="toolbar-button" title="Tümünü Göster" data-label="Tümünü Göster" disabled>
 					<img src="./img/show.svg" width="26" height="26" alt="">
 				</button>
 				<button type="button" id="groundToggle" class="toolbar-button" title="Düzlemi Gizle">
@@ -61,7 +61,8 @@
 			<div id="sceneLabels" class="scene-labels" aria-hidden="true"></div>
 		</div>
 		<div class="rightWrapper" id="rightWrapper">
-			<div class="reSizer"></div>
+			<!-- Column: drag to resize. Sheet: tap or swipe to open and close, drag to resize. -->
+			<div class="reSizer" id="panelHandle"></div>
 			<!-- Dar ekranda alt panel nesneler ile araçlar arasında geçiş yapar. -->
 			<div class="panel-tabs" role="tablist" aria-label="Panel">
 				<button type="button" id="tabAlgebra" class="panel-tab" role="tab" aria-selected="true" aria-controls="scrollWrapper">Cebir</button>
@@ -93,10 +94,33 @@
 		<strong id="snackTitle" class="tool-toast-title"></strong>
 		<span id="snackContent" class="tool-toast-message"></span>
 	</div>
+	<!-- Hakkında Penceresi (ailenin ortak penceresi: ad, sürüm, mADEMatik Solutions, indirme, lisans, iletişim) -->
+	<div class="help-popup about-popup" id="about-popup" role="dialog" aria-modal="true" aria-labelledby="about-title">
+		<div class="help-content about-content">
+			<div class="help-header">
+				<h2 id="about-title">drAW3D Hakkında</h2>
+				<button type="button" class="help-close" id="about-close" title="Kapat" aria-label="Kapat">&times;</button>
+			</div>
+			<div class="about-body">
+				<img class="about-icon" src="./img/app-icon.png" width="72" height="72" alt="">
+				<p class="about-name"><strong>drAW3D</strong> <span id="about-version"></span></p>
+				<p class="about-description">3B geometri ve cisim açınımları</p>
+				<p class="about-maker"><a href="https://madematik.com" target="_blank" rel="noopener noreferrer"><span class="about-brand">m<span>ADEM</span>atik Solutions</span><br>madematik.com</a></p>
+				<dl class="about-facts">
+					<dt>İndir</dt>
+					<dd><a href="https://madematik.com/projelerim/draw3d#indirmeler" target="_blank" rel="noopener noreferrer">Linux · Windows · Android</a></dd>
+					<dt>Lisans</dt>
+					<dd>MIT</dd>
+					<dt>İletişim</dt>
+					<dd class="about-mail">ademvarol@madematik.com</dd>
+				</dl>
+			</div>
+		</div>
+	</div>
 	<!-- Yardım Penceresi -->
 	<div class="help-popup" id="help-popup">
 		<div class="help-content">
-			<div id="help-header">
+			<div id="help-header" class="help-header">
 				<h2>drAW3D Yardım</h2>
 				<button class="help-close" type="button" title="Kapat">&times;</button>
 			</div>

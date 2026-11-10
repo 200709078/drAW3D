@@ -91,23 +91,9 @@ body {
 }
 
 @media (max-width: 700px) {
-	/* More actions than fit a phone: the row scrolls sideways, the panel button comes first. */
-	.toolbar-actions {
-		min-width: 0;
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-
+	/* More actions than fit a phone: rarely used ones move into the ☰ menu (main-toolbar.ts). */
 	.toolbar-actions .toolbar-button {
 		flex: none;
-	}
-
-	#btnCalc {
-		order: -2;
-	}
-
-	#helpMenuButton {
-		order: -1;
 	}
 
 	.object-controls {
@@ -545,7 +531,7 @@ body.webgl-error-page {
 	padding: 14px;
 }
 
-#help-header {
+.help-header {
 	position: sticky;
 	top: 0;
 	background: #ffffff;
@@ -616,6 +602,88 @@ body.webgl-error-page {
 
 .help-close:hover {
 	background: #e2e8f0;
+}
+
+/* Hakkında: a small window in the help window's style, the same in every app of the family. */
+.about-content {
+	width: min(360px, 100%);
+}
+
+.about-body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 18px 18px 20px;
+	text-align: center;
+}
+
+.about-body p {
+	margin: 0;
+}
+
+.about-icon {
+	width: 72px;
+	height: 72px;
+	margin-bottom: 6px;
+}
+
+.about-name {
+	font-size: 16px;
+}
+
+.about-name strong {
+	font-size: 20px;
+}
+
+.about-description {
+	color: #475569;
+}
+
+.about-maker {
+	margin-top: 10px !important;
+}
+
+.about-maker a,
+.about-facts a {
+	color: #1d4ed8;
+	text-decoration: none;
+}
+
+.about-maker a:hover,
+.about-facts a:hover {
+	text-decoration: underline;
+}
+
+.about-brand {
+	color: #172033;
+	font-weight: 700;
+}
+
+.about-brand span {
+	color: #1d4ed8;
+}
+
+.about-facts {
+	display: grid;
+	grid-template-columns: auto auto;
+	gap: 4px 12px;
+	margin: 14px 0 0;
+	text-align: left;
+}
+
+.about-facts dt {
+	color: #64748b;
+}
+
+.about-facts dd {
+	margin: 0;
+}
+
+/* The address is shown as text to select: mail links often open nothing on boards and phones. */
+.about-mail {
+	user-select: all;
+	-webkit-user-select: all;
 }
 
 .help-search {
@@ -744,6 +812,16 @@ code.example:hover {
 		max-height: none;
 		height: 100%;
 		border-radius: 10px;
+	}
+
+	/* Hakkında is short: it stays a small window instead of filling the phone like Yardım. */
+	.help-popup.about-popup {
+		align-items: center;
+	}
+
+	.help-content.about-content {
+		height: auto;
+		max-height: 100%;
 	}
 
 	.help-search {
@@ -1038,8 +1116,19 @@ code.example:hover {
 		transition: transform 0.35s ease, visibility 0.35s;
 	}
 
+	/* Closed, the sheet leaves its handle and tabs at the bottom (SHEET_PEEK in side-panel.ts):
+	   a tap, a swipe up or a tab opens it, so the toolbar needs no arrow on a phone. */
+	#rightWrapper {
+		--sheet-peek: 58px;
+	}
+
 	#rightWrapper.hide {
-		transform: translateY(100%);
+		transform: translateY(calc(100% - var(--sheet-peek)));
+		visibility: visible;
+	}
+
+	#btnCalc {
+		display: none;
 	}
 
 	/* With the keyboard open the sheet keeps the input and a card visible above it. */
@@ -1054,10 +1143,15 @@ code.example:hover {
 		top: 0;
 		width: 100%;
 		height: 18px;
-		cursor: row-resize;
+		cursor: pointer;
 		background: transparent;
 		touch-action: none;
 		z-index: 1;
+	}
+
+	.reSizer:focus-visible {
+		outline: 2px solid var(--toolbar-active-border);
+		outline-offset: -2px;
 	}
 
 	.reSizer::after {
@@ -1078,14 +1172,6 @@ code.example:hover {
 		padding-right: 10px;
 	}
 
-	/* Over a sheet the panel arrow points down to hide and up to show. */
-	#btnimgCalc:not(.panel-hidden) {
-		transform: rotate(90deg);
-	}
-
-	#btnimgCalc.panel-hidden {
-		transform: rotate(-90deg);
-	}
 }
 
 /* Touch screens: finger-sized buttons, sliders and command input. */
@@ -1330,6 +1416,19 @@ code.example:hover {
 .file-menu kbd {
 	color: #64748b;
 	font: 11px system-ui, sans-serif;
+}
+
+/* Klavyesiz dokunmatik cihazda (telefon, tablet, Android uygulaması) kısayol ipuçları anlamsız. */
+@media (hover: none) and (pointer: coarse) {
+	.file-menu kbd {
+		display: none;
+	}
+}
+
+.file-menu .menu-separator {
+	margin: 6px 0;
+	border: 0;
+	border-top: 1px solid #e2e8f0;
 }
 
 @media (max-width: 700px) {

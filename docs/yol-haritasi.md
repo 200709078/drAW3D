@@ -620,3 +620,6 @@ düzeltilen iki hata (Android yazı büyütme, telefonda görünen kısayollar) 
 - Dosya simgesi açık gri (drAW2D ile aynı `toolbar.css`).
 - Test: `tests/shell-integration.spec.ts`; bütün testler geçti (207). Telefonda ve tahtada denenmedi.
 
+## Yayın 0.1.6 (2026-11-10, kullanıcı izniyle)
+
+GitHub sürümü v0.1.6 (apk, deb, AppImage, exe; iş akışı elle başlatıldı, etiketi iş akışı açtı) ve madematik.com/drAW3D canlıda. İçinde: ☰ menüsü, alt panel tutamacı, Yardım ve Hakkında, Android yazı ölçeği, telefonda gizlenen kısayollar, açık renk Dosya simgesi. Site indirme kayıtları için SQL: `~/Masaüstü/madematik_indirmeler_2026-11-11.sql`.

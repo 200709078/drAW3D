@@ -112,6 +112,20 @@ test('görüntü PNG olarak kaydedilir', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
+test('Görüntüyü kopyala: PNG panoya gider (awDOC\'a yapıştırmak için)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const errors = await open(page)
+  await command(page, 'Prizma((0,0,0),(2,0,0))')
+  await menu(page, 'fileCopyImage')
+  const copied = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read()
+    const blob = await item.getType('image/png')
+    return [...new Uint8Array(await blob.arrayBuffer()).subarray(1, 4)].map(code => String.fromCharCode(code)).join('')
+  })
+  expect(copied).toBe('PNG')
+  expect(errors).toEqual([])
+})
+
 test('seçili cismin açınımı gerçek ölçekte SVG olarak kaydedilir; seçim yoksa söylenir', async ({ page }) => {
   test.slow()
   await open(page)

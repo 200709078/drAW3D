@@ -41,7 +41,7 @@ import type { ToolAction } from '../ui/tool-registry'
 import { CameraState, type ScreenPoint } from './camera-state'
 import { hitTolerance, nearestPoint, type PointerKind } from './hit-test'
 import {
-  canSavePdf, exportFile, openDocumentFile, printHtml, readHandedFile, saveDocumentFile, savePdf,
+  canCopyImages, canSavePdf, copyImage, exportFile, openDocumentFile, printHtml, readHandedFile, saveDocumentFile, savePdf,
   type FileTarget, type OpenedFile,
 } from './files'
 import { bindAndroid } from './native'
@@ -636,7 +636,7 @@ export function startApp(): void {
   const exportBase = () => fileName?.replace(new RegExp(`\\${FILE_EXTENSION}$`, 'i'), '') ?? 'drAW3D'
 
   /** The scene as drawn now, with its HTML labels painted on top. */
-  const exportImage = async (): Promise<void> => {
+  const exportImage = async (copy = false): Promise<void> => {
     renderer.render(scene, camera.camera)
     const image = document.createElement('canvas')
     image.width = canvas.width
@@ -666,6 +666,10 @@ export function startApp(): void {
     const blob = await new Promise<Blob | null>(resolve => image.toBlob(resolve, 'image/png'))
     if (!blob) {
       showToast('Dışa Aktar', 'Görüntü oluşturulamadı.')
+      return
+    }
+    if (copy) {
+      showToast('Dışa Aktar', await copyImage(blob) ? 'Görüntü kopyalandı; awDOC\'a ya da başka bir yere yapıştırabilirsiniz.' : 'Görüntü kopyalanamadı; PNG olarak kaydedin.')
       return
     }
     try {
@@ -698,6 +702,7 @@ export function startApp(): void {
     onOpen: () => void openFile(),
     onSave: saveAs => void saveFile(saveAs),
     onExportImage: () => void exportImage(),
+    ...(canCopyImages() ? { onCopyImage: () => void exportImage(true) } : {}),
     async onNetSvg(tabs) {
       const page = netPage(tabs)
       if (!page) return

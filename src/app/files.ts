@@ -196,3 +196,18 @@ export function printHtml(html: string, name: string): void {
   frame.srcdoc = html
   document.body.append(frame)
 }
+
+/** Whether this browser can put a picture on the clipboard (Chromium, Electron; not every Android WebView). */
+export function canCopyImages(): boolean {
+  return typeof ClipboardItem === 'function' && typeof navigator.clipboard?.write === 'function'
+}
+
+/** The picture on the clipboard, to paste into awDOC or anywhere else; false when the system refused. */
+export async function copyImage(png: Blob): Promise<boolean> {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+    return true
+  } catch {
+    return false
+  }
+}

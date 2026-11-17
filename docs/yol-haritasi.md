@@ -643,3 +643,38 @@ ve tam açıklama, kategori, beyan önerileri, 0.1.6 sürüm notu; `node scripts
 4. Dahili test: AAB'yi yükle, telefonda Play'den kurup dene.
 5. Kapalı test: en az 12 testçi, kesintisiz 14 gün (awPDF'in "awPDF" testçi listesi kullanılır; her uygulamanın 14 günü ayrı).
 6. Üretim erişimi başvurusu ve yayın.
+
+## Görüntüyü kopyala (2026-11-17, kullanıcı onayı awDOC üzerinden: "önerdiğin sırayla devam et")
+
+awDOC'un 4. aşamasında görsel ekleme için önerilen "drAW2D / drAW3D'den görsel olarak kopyala" yapıldı. Dosya ▾ →
+Dışa Aktar altında **"Görüntüyü kopyala"**: görüntü (PNG kaydetmedeki çizimin aynısı) panoya gider; awDOC'ta (ya
+da başka bir yerde) Ctrl+V ile yapıştırılır. Panoya resim yazamayan yerlerde (bazı Android WebView'leri) madde
+görünmez; yazma reddedilirse "PNG olarak kaydedin" denir. Playwright testi eklendi; uçtan uca (kopyala →
+awDOC'a yapıştır) tarayıcıda denendi. Electron'da ve telefonda denenmedi. Kullanıcı 2026-11-18'de onayladı ("hepsini yap"): commit edildi ve gönderildi.
+
+## Araçlar / cebir paneli açıkken sahne kıpırdamasın (2026-11-17, kullanıcı bildirdi; sonra denetlenip düzeltilecek)
+
+Kullanıcı: "drAW3D de araçlar menüsünde düğmelere tıklarken veya gezinirken arka plandaki sahne de hareket ediyor.
+araçlar veya cebir paneli açıkken sahne hareket etmemeli. drAW2D de aynı sorun var mı bilmiyorum. Her iki projeye de
+bunu not et. kontrol edelim ve düzeltelim daha sonra." Kullanıcı bu sorunu drAW3D'de gördü.
+- Kullanıcının açıklaması: "araçlar/cebir panelinin arkasına dokunuşlar sızmamalı demek istiyorum yani."
+- Beklenen: araçlar menüsünün ya da cebir panelinin üstündeki dokunuş, tıklama, sürükleme ve kaydırma (tekerlek,
+  parmakla kaydırma) panelin arkasındaki sahneye (kamera / görünüm) sızmaz. Sahne yalnız panelin dışındaki
+  dokunuşlarla hareket eder.
+- **İlk denetim (2026-11-17):** Kullanıcı sızmayı **başka bir telefonda** hissetmiş. Kendi telefonunda (Xiaomi
+  2201116TG) denedi, sızdıramadı. Claude'un denetimi:
+  - **Gerçek telefon:** Aynı telefonda Play'deki drAW3D'de Araçlar sekmesinin araç satırları gerçek dokunuşla
+    (`adb shell input swipe`) iki yöne kaydırıldı. Sahnenin ekran görüntüsü piksel piksel aynı kaldı.
+  - **Öykünme:** Chromium'da (400×800, dokunmatik) şunlarda sahne (kamera) kıpırdamadı:
+    - Araçlar panelinde dikey kaydırma.
+    - Masaüstünde araçlar ve cebir panelinde tekerlek, sürükleme ve tıklama.
+  - **Kod:** Kamera (OrbitControls) yalnız `#scene` tuvalini dinliyor. Panel (`#rightWrapper`) tuvalin
+    içinde değil, yanında; kodda paneldeki dokunuşu sahneye taşıyan bir yol görünmüyor.
+  - **Sonraki adım:** Sızmanın görüldüğü öbür telefon bağlanınca orada denenecek (kullanıcı takabileceğini
+    söyledi). Olası nedenler: o telefonun eski WebView sürümü, farklı ekran boyutunda panelin sahneyle
+    çakışması, iki parmakla yakınlaştırmanın panelin üstünden başlaması.
+  - **Yan bulgu:** Tarayıcıdaki sürümde ekranın sol kenarına yakın başlayan yana kaydırma, tarayıcının
+    "geri" hareketini tetikleyebiliyor (öykünmede sayfa boşa döndü). Android uygulamasında olmaz; web
+    sürümü için `overscroll-behavior-x: none` düşünülebilir.
+- Henüz kodlanmadı. Denetlerken: işaretçi olaylarının panelden sahneye taşması (`pointerdown` / `wheel` /
+  `touchmove` yayılması ve varsayılan davranışı), panel kaydırmasının sahne yakınlaştırmasına dönüşmesi.

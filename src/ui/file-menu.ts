@@ -7,6 +7,8 @@ export interface FileMenuHandlers {
   onOpen(): void
   onSave(saveAs: boolean): void
   onExportImage(): void
+  /** Absent where the clipboard takes no pictures. */
+  onCopyImage?(): void
   onNetSvg(tabs: boolean): void
   onNetPrint(tabs: boolean): void
   /** Only in the desktop app, which writes PDFs itself. */
@@ -57,6 +59,8 @@ export function createFileMenu(button: HTMLButtonElement, handlers: FileMenuHand
   item('fileSaveAs', 'Farklı Kaydet…', 'Ctrl+Shift+S', () => handlers.onSave(true))
   heading('Dışa Aktar')
   item('fileImage', 'Görüntüyü PNG olarak kaydet', '', handlers.onExportImage)
+  // To paste into awDOC (an exam paper) or any other app.
+  if (handlers.onCopyImage) item('fileCopyImage', 'Görüntüyü kopyala', '', handlers.onCopyImage)
   heading('Açınım (seçili cisim)')
   const label = document.createElement('label')
   label.className = 'view-option'

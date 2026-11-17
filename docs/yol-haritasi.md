@@ -633,7 +633,7 @@ Play'den güncelleme alabilsin diye mevcut sürümden (0.1.6, kod 106) başlanı
 **Hazırlandı (2026-11-16):** `public/gizlilik.html` (madematik.com/drAW3D/gizlilik.html), `docs/play/magaza.md` (ad, kısa
 ve tam açıklama, kategori, beyan önerileri, 0.1.6 sürüm notu; `node scripts/play/sinirlar.mjs` sınırları denetler),
 `docs/play/` simge, öne çıkan görsel, telefon / 7" / 10" tablet ekran görüntüleri (`npm run play:gorseller`). WebGL, testlerdeki gibi SwiftShader ile.
-İmzalı AAB: v0.1.6 sürüm iş akışının `play-Android` artifact'ı. Dosyalar masaüstünde `~/Masaüstü/Play/drAW3D/`.
+İmzalı AAB: v0.1.6 sürüm iş akışının `play-Android` artifact'ı. Dosyalar `~/Belgeler/Play/drAW3D/` (geçici; kullanıcı silecek).
 
 **Play Console adımları** (awPDF'teki sırayla):
 1. Uygulama oluştur: ad "drAW3D: 3B Geometri ve Açınım", dil Türkçe, Uygulama, Ücretsiz.

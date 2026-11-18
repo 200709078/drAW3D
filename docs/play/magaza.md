@@ -70,6 +70,12 @@ drAW3D ücretsizdir. Öneri ve sorunlar için: destek@madematik.com
 
 Play Console'da sürüm oluşturulurken `<tr-TR>` ile `</tr-TR>` arasına yazılır. En yenisi üstte.
 
+### 0.1.7
+
+<!-- not-0.1.7 -->
+Dosya menüsüne "Görüntüyü kopyala" eklendi (cihaz destekliyorsa): cisim resim olarak kopyalanır, awDOC'taki sınav kâğıdına ya da başka bir uygulamaya yapıştırılabilir.
+<!-- /not-0.1.7 -->
+
 ### 0.1.6
 
 <!-- not-0.1.6 -->

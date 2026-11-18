@@ -678,3 +678,8 @@ bunu not et. kontrol edelim ve düzeltelim daha sonra." Kullanıcı bu sorunu dr
     sürümü için `overscroll-behavior-x: none` düşünülebilir.
 - Henüz kodlanmadı. Denetlerken: işaretçi olaylarının panelden sahneye taşması (`pointerdown` / `wheel` /
   `touchmove` yayılması ve varsayılan davranışı), panel kaydırmasının sahne yakınlaştırmasına dönüşmesi.
+
+## Yayın 0.1.7 (2026-11-18, kullanıcı isteği)
+
+Kullanıcı: "değişen uygulamaların hepsini github a gönder, yeni versiyon yayınla, play consola da yeni sürümle yükle." GitHub sürümü v0.1.7 (apk, deb, AppImage, exe; imza 84:F7:8D:F0… denetlendi). Play için imzalı AAB ve sürüm notu `~/Belgeler/Play/drAW3D/0.1.7/`; bu oturumda tarayıcı aracı olmadığı için Play Console'a yüklemeyi kullanıcı yapar. Site indirme kayıtları için SQL: `~/Masaüstü/madematik_indirmeler_2026-11-18.sql` (yerel veritabanında iki kez denendi). Web sürümü madematik.com'a bu yayınla yüklenmedi; kullanıcıya soruldu.
+
